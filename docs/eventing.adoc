@@ -67,13 +67,89 @@ Let's have a quick look on both ends of the spectrum:
 For commands managing resources directly the _<noun>_ represents the resource to manage.
 The following sections reflect this grouping.
 
-=== Integrator use cases
-
 [[grp-channel]]
-==== `channel`
+=== Channel
+
+==== List all channel types
+
+[quote]
+____
+As am _Integrator_ I want to find all channel types which are available by a given Knative installation
+____
+
+.Example
+[source]
+----
+kn channel list-types
+
+TYPE                DESCRIPTION
+in-memory           Non-persistent in memory channel (default)
+kafka               Kafka backed channel
+pubsub              Google Cloud pub-sub
+natss               NATSS
+activemq            ActiceMQ backed channel
+----
+
+Only those types which can be really used for the given Knative installation must show up here.
+For the four directly supported channel types _in-memory_, _kafka_, _pubsub_ and _natts_ the corresponding cluster features needs to be enabled.
+For custom channel types like _activemq_ in this example, also a local **channel plugin** needs to be present.
+See <<custom-types>> for more details how detection and channel plugin work.
+
+[NOTE]
+====
+If channel creation is not exposed directly, but done indirectly e.g. when creating or modifying a broker, then this sub-command should be moved to this location as well.
+====
+
+==== Create a new channel
+
+[NOTE]
+====
+Whether a channel can be directly created or is only created as part of `broker` management should be discussed
+====
+
+[quote]
+____
+I want to create a channel from the CLI
+____
+
+Allows  channel-type specific creation options
+Get the channel options for external channel implementations. This might be implemented with a plugin model for channel plugins which are external programs and which follow a plugin SPI for
+Getting the CRD kind which this channel plugin manages
+A name which can be used as a label when listing all available channel types.
+Getting a textual description of all options supported by the channel plugin which is returned to the used if asking for help
+Well-known channel types (in-memory, kafka, pubsub, natss) are hardcoded in kn, but for the users its opaque whether a he creates a channel from such a well-known type for from a channel plugin
+
+==== List all channels
+
+[quote]
+____
+I want to list all channels
+____
+
+==== Show channel details
+
+[quote]
+____
+I want to see the details of a channel
+____
+
+Triggers attached to the channel
+Broker which uses the channel
+
+==== Remove a channel
+
+[quote]
+____
+I want to remove a channel
+____
+
+Check for triggers attached to the channel and prevent deletion by default if used
+--force for removing channel unconditionally
+--recursive removing channel + triggers referring this channel
 
 [[grp-importer]]
 ==== `importer`
+
 
 [[grp-broker]]
 ==== `broker`
@@ -88,6 +164,10 @@ The following sections reflect this grouping.
 
 [[custom-types]]
 == Custom types
+
+// This should be done by querying for CRDs with a category “channel”
+//As querying for CRDs is a K8s concept, it would be helpful if getting the list of available channel types from the Knative eventing API
+//Beside checking available CRDs also check whether a corresponding channel plugin is available locally a long with a download URL when it is not.
 
 Knative Eventing can be easily extended with new channel and importer types by introducing CRDs and install controllers which evaluate instances of these CRDs.
 
