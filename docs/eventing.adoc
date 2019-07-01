@@ -1,12 +1,12 @@
 
-# Client support for Knative Eventing
+# Knative Eventing client support
 
 This document is a suggestion how support for Knative Eventing can be seamless introduced into `kn`.
 This support should be on the same level and with the same user experience as the existing support for Knative Serving.
 
 We will start with an <<introduction>> and brief overview of Knative Eventing and its core concepts.
 As we will see soon, that there are some subtle differences compared to Knative Serving as Knative Eventing as an _open_ API which can be extended with custom types whereas Knative Serving consists of a closed set of entities (`Service`, `Configuration`, `Revision`, `Route`)
-A suggestion how to deal with the dynamic nature of <<Importers,importers>> and <<Channels,channels>> on the client side is proposed in <<custom-types>>.
+A suggestion how to deal with the dynamic nature of <<importers>> and <<channels>> on the client side is proposed in <<custom-types>>.
 
 Concrete CLI suggestions for the various Knative eventing types follow in <<command-groups>> before we then close with concrete examples how to use a native and a custom Importer.
 
