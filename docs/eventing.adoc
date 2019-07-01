@@ -17,6 +17,21 @@ Concrete CLI suggestions for the various Knative eventing types follow in <<comm
 * Challenge: Dynamic nature of channels and importers
 * Plugin architecture to allow dynamic exte
 
+## Roles
+
+For Knative Eventing there are typically three roles for which use cases can be classified:
+
+* **Administrators** install Knative on a target platform like Kubernetes. Administrators are responsible for registering the Knative Eventing core CRDs and installing operators for watching those. Administrator are also responsible for installing any importer (aka source) and channel **types** (CRD and controllers) so that _Integrators_ can create integration and channel **instances** with a specific configuration. The can be more than one instance for each type (e.g. differnent Kafka importers for different Kafka topics)
+
+* **Integrators** are responsible for managing importer and channel instances out of the list of installed type. They are also responsible for creating brokers, which reference specific channels.
+
+* **Developers** are using the importers, channels and brokers by linking them together, potentially also with Knative services created by the developer.
+
+Of course a single person can fulfill multiple roles.
+The scope of this document is suggestion a concrete kn support for the roles of an _Integrator_ and _Developer_. _Administrators_ are out of scope for the Knative client as the install Knative in a platform specific way.
+
+This document will indicate clearly the role for each use case covered.
+
 [[custom-types]]
 ## Custom types
 
@@ -54,3 +69,11 @@ Concrete CLI suggestions for the various Knative eventing types follow in <<comm
 
 [[example-importer-twitter]]
 ### Twitter Importer Plugin
+
+
+## References
+
+
+* https://github.com/knative/client/issues/217[Kn Client issue] tracking eventing integration
+* https://github.com/knative/eventing/issues/1381[Kn Eventing issue] tracking UI/UX
+* https://docs.google.com/document/d/1DpiSL2dUcYS2n7yXOIG5LJwyIC1lY9q_W8-56U1SvKM/edit?hl=en#[Scenarios for Knative Eventing]
