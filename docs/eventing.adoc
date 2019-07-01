@@ -1,5 +1,7 @@
 
-# Knative Eventing client support
+= Knative Eventing client support
+Roland Huß <rhuss@redhat.com>; Matthias Wessendorf <mwessendorf@redhat.com>
+v0.1.0, 2019-07-02
 
 This document is a suggestion how support for Knative Eventing can be implemented within `kn`.
 This support should be on the same level and with the same user experience as the existing support for Knative Serving.
@@ -22,7 +24,7 @@ A suggestion how to deal with the dynamic nature of <<importers>> and <<channels
 Finally, a set of <<examples>> for a managing importers like an (already contributed) <<example-kafka-source, KafkaSource>> and an (imaginary) <<twitter-source, TwitterSource>> tries to illustrate they implementation suggestion for dynamic types.
 
 [[roles]]
-## Roles
+== Roles
 
 For Knative Eventing there are typically three roles for which use cases can be classified:
 
@@ -35,49 +37,132 @@ For Knative Eventing there are typically three roles for which use cases can be 
 Of course a single person can fulfill multiple roles.
 The scope of this document is suggestion a concrete kn support for the roles of an _Integrator_ and _Developer_. _Administrators_ are out of scope for the Knative client as the install Knative in a platform specific way.
 
-
-This document will indicate clearly the role for each use case covered.
-
 [[abstraction]]
-## Levels of Abstraction
+== Level of Abstraction
 
-[[command-groups]]
-## Command Groups
+Every feature of Knative Eventing and Serving can be used with a general purpose CLI tool like `kubectl`.
+However, it is the goal of the specialized `kn` CLI tool to make common use cases easy to perform.
+Therefor `kn` takes a somewhat opinionated approach, and restricts certain variations and combinations (like creating `Routes` directly with kn in favor of doing everything via the `Service`).
+
+The question is how much abstracted the core Knative concepts should be.
+This is not a discrete choice but a spectrum with exposing Knative CRs directly on the one side, and using a complete new vocabulary specific to `kn` on the other side.
+
+Let's have a quick look on both ends of the spectrum:
+
+
+* [[abstraction-crs]] **Direct CR management** only provides a thin layer of creating a CR diretly. For example `kn service create myservice --image myorga/myservice:1.0` will just create a single Knative Serving `Service`. This already provides much value as it encapsulates already domain knowledge how to create the underlying CR. A good example here are the option `--concurrency-limit` and `--concurrency-target` which are kind of hard and soft limits for when to trigger an autoscaling event, but on the CR the end up in different places (direct CR field vs. provided as annotation)
+
+* [[abstraction-use-case]] **Use-case backed interface** encapsulates the management of Knative custom resources behind an opinionated user interface. Examples for this higher-order abstractions are:
+** `kn rollout --strategy blue-green` for creating
+** `kn rollout --strategy canary --canary-target=2 --image=myservice:2.0` for creating a new revision with for a new version with a target of %2 procent for the canary.
+** `kn connect --source github://secretname@github.com/user/helloworld --select ... --destination service://myservice` for connecting an importer to a broker, creating a trigger with `--select` which references a Knative service `myservice` as sink.
+
+`kn` takes an approach somewhat in between, leaning towards to the _use case backed interface_ but also allows direct CR manipulation where needed.
+
+[[use-cases]]
+== Use Cases
+
+`kn` basic syntax is in the form `kn <noun> <verb>` with _<noun>_ representing a core concept like `service` or `revision`.
+
+For commands managing resources directly the _<noun>_ represents the resource to manage.
+The following sections reflect this grouping.
+
+=== Integrator use cases
 
 [[grp-channel]]
-### `channel`
+==== `channel`
 
 [[grp-importer]]
-### `importer`
+==== `importer`
 
 [[grp-broker]]
-### `broker`
+==== `broker`
+
+=== Developer use cases
 
 [[grp-trigger]]
-### `trigger`
+==== `trigger`
 
 [[grp-sequence]]
-### `sequence`
-
-[[examples]]
-## Examples
-
-[[example-importer-cronjob]]
-### CronJob Importer
-
-[[example-importer-twitter]]
-### Twitter Importer Plugin
+==== `sequence`
 
 [[custom-types]]
-## Custom types
+== Custom types
+
+Knative Eventing can be easily extended with new channel and importer types by introducing CRDs and install controllers which evaluate instances of these CRDs.
+
+The kn client can easily query for all CRDs and match on all CRDs with a category of "knative" and "channel":
+
+[source, yaml]
+----
+kind: CustomResourceDefinition
+spec:
+  group: messaging.knative.dev
+  names:
+    categories:
+    - all
+    - knative
+    - messaging
+    - channel
+    kind: InMemoryChannel
+----
+
+The list of returned CRDs are the channels that can be used for creating new channels, whereby it is assumed that a corresponding controller has been installed on the server side, too.
+
+However, since each channel type supports different configuration options, a client side mechanism allows user to provide these configuration as command line options/flags.
+An alternative would be to evaluate the CRDs openAPI schema to provide a general way to query for the options. However such a generic mechanism never can provide the same UX as custom tailored client side extension.
+
+For well known types (like InMemoryChannel) the channel specific features are well known and can be directly supported by kn. For custom provided types a plugin mechanism is required.
+
+Such a channel plugin is an external binary placed in a well location (e.g. `~/.kn/plugins/channels/`) and fulfill a contract like:
+
+The name of the binary reflects the type that should be used in `kn channel create --type <channel-type>`
+The following commands given as arguments are supported by the executable
+
+.Plugin contract for importer and channel plugins
+|===
+| Command | Description
+
+|
+| Print out the CRD coordinates which connects this plugin to the CRD it is responsible for. Can be a JSON structure with the kind, group and api version and a textual description of the channel type
+
+| `help`
+| A description of the supported options for create/update. This text will be integrated in “kn” help output.
+
+| `create`
+| Create a resource of this kind. The provided command line arguments are handed through directly to the plugin. The first argument will be the name of the resource creazted, the rest are options specific for this importer or channel.
+
+| `update`
+| Upate a plugin managed resource. The syntax is the same as for `create` except that a resource for the given name should be updated.
+
+| `describe`
+| Print out a human readable description for the channel or importer.
+|===
+
+If for one channel is either the CRD is missing or the client side plugin, then this channel type is disabled.
+
+For the user it should not matter whether the channel management is hardcoded in the kn binary or provided by a channel plugin. I.e. when listing all available channel types both types (internally provided, via plugin) are presented on the same level.
+
+The same mechanism should be implemented for importer plugins for handling custom importers which are represented by CRDs in the same way as channels.
 
 [[importers]]
-### Importers
+=== Importers
 
 [[channels]]
-### Channels
+=== Channels
 
-## References
+[[examples]]
+== Examples
+
+[[example-importer-cronjob]]
+=== CronJob Importer
+
+[[example-importer-twitter]]
+=== Twitter Importer Plugin
+
+
+[[references]]
+== References
 
 * https://github.com/knative/client/issues/217[Kn Client issue] tracking eventing integration
 * [[eventing-ux-issue]] https://github.com/knative/eventing/issues/1381[Kn Eventing issue] tracking UI/UX
