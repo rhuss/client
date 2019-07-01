@@ -1,22 +1,27 @@
 
 # Knative Eventing client support
 
-This document is a suggestion how support for Knative Eventing can be seamless introduced into `kn`.
+This document is a suggestion how support for Knative Eventing can be implemented within `kn`.
 This support should be on the same level and with the same user experience as the existing support for Knative Serving.
 
-We will start with an <<introduction>> and brief overview of Knative Eventing and its core concepts.
-As we will see soon, that there are some subtle differences compared to Knative Serving as Knative Eventing as an _open_ API which can be extended with custom types whereas Knative Serving consists of a closed set of entities (`Service`, `Configuration`, `Revision`, `Route`)
-A suggestion how to deal with the dynamic nature of <<importers>> and <<channels>> on the client side is proposed in <<custom-types>>.
+It is important to note that we approach the problem space upside down.
+I.e. everything described here is based on the concept included in Knative Eventing 0.7.0.
+and could be implemented immediately.
 
-Concrete CLI suggestions for the various Knative eventing types follow in <<command-groups>> before we then close with concrete examples how to use a native and a custom Importer.
+Also, this approach tries to map to the scenarios described in this <<eventing-ux-issue,GitHub issue>> and this <<eventing-ux-scenarios,scenario document>> where usage scenarios are the foundation,
 
-[[introduction]]
-## Introduction
+Before describing the use case and a possible implementation we will have a look to the identified Eventing roles in <<roles>>.
 
-* Overview of eventing + links
-* Challenge: Dynamic nature of channels and importers
-* Plugin architecture to allow dynamic exte
+The following section then talks about the various <<abstraction,abstraction levels>> and what balance is targeted by this document.
 
+Concrete use case with sample kn usage are describe in <<use-cases>>.
+
+As we will see in the use case section, there are subtle differences compared to Knative Serving as Knative Eventing as an _open_ API which can be extended with custom types (CRDs) whereas Knative Serving consists of a closed set of entities (`Service`, `Configuration`, `Revision`, `Route`) described by a fixed set of CRDs.
+A suggestion how to deal with the dynamic nature of <<importers>> and <<channels>> on the client side is proposed in <<custom-types>>, which proposes a specific plugin architecture for managing importers and channels.
+
+Finally, a set of <<examples>> for a managing importers like an (already contributed) <<example-kafka-source, KafkaSource>> and an (imaginary) <<twitter-source, TwitterSource>> tries to illustrate they implementation suggestion for dynamic types.
+
+[[roles]]
 ## Roles
 
 For Knative Eventing there are typically three roles for which use cases can be classified:
@@ -30,18 +35,11 @@ For Knative Eventing there are typically three roles for which use cases can be 
 Of course a single person can fulfill multiple roles.
 The scope of this document is suggestion a concrete kn support for the roles of an _Integrator_ and _Developer_. _Administrators_ are out of scope for the Knative client as the install Knative in a platform specific way.
 
+
 This document will indicate clearly the role for each use case covered.
 
-[[custom-types]]
-## Custom types
-
-* Channels & Importers
-
-[[importers]]
-### Importers
-
-[[channels]]
-### Channels
+[[abstraction]]
+## Levels of Abstraction
 
 [[command-groups]]
 ## Command Groups
@@ -70,10 +68,17 @@ This document will indicate clearly the role for each use case covered.
 [[example-importer-twitter]]
 ### Twitter Importer Plugin
 
+[[custom-types]]
+## Custom types
+
+[[importers]]
+### Importers
+
+[[channels]]
+### Channels
 
 ## References
 
-
 * https://github.com/knative/client/issues/217[Kn Client issue] tracking eventing integration
-* https://github.com/knative/eventing/issues/1381[Kn Eventing issue] tracking UI/UX
-* https://docs.google.com/document/d/1DpiSL2dUcYS2n7yXOIG5LJwyIC1lY9q_W8-56U1SvKM/edit?hl=en#[Scenarios for Knative Eventing]
+* [[eventing-ux-issue]] https://github.com/knative/eventing/issues/1381[Kn Eventing issue] tracking UI/UX
+* [[eventing-ux-scenarios]] https://docs.google.com/document/d/1DpiSL2dUcYS2n7yXOIG5LJwyIC1lY9q_W8-56U1SvKM/edit?hl=en#[Scenarios for Knative Eventing]
