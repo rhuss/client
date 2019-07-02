@@ -98,7 +98,7 @@ ____
 
 Beside that channels can be created implicitely via a Broker, channels also can be created manually by an _Integrator_ so that a _Developer_ can use them when subscribing to them (by creating connections as described in
 
-.List all channel types
+===== List all channel types
 [quote]
 ____
 As an _Integrator_ I want to find all channel types which are available by a given Knative installation
