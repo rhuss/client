@@ -84,7 +84,9 @@ In the following use cases we refer to this set as "CRUD operations".
 The following use cases can be categorized by this epic use case below.
 So they are all about setting up the topology which includes brokers, channels and the importers that then can be used by a _Developer_.
 
-NOTE: As an _Integrator_ I want to manage importers (sources) and the infrastructure elements like brokers and channels to set up the eventing topology.
+****
+As an _Integrator_ I want to manage importers (sources) and the infrastructure elements like brokers and channels to set up the eventing topology.
+****
 
 [[importers]]
 ==== Importers
