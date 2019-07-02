@@ -86,7 +86,7 @@ So they are all about setting up the topology which includes brokers, channels a
 
 
 ++++
-<p style="color=red">
+<p style="color: red">
 As an _Integrator_ I want to manage importers (sources) and the infrastructure elements like brokers and channels to set up the eventing topology.
 </p>
 ++++
