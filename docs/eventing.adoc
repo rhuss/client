@@ -61,30 +61,7 @@ Let's have a quick look on both ends of the spectrum:
 [[use-cases]]
 == Use Cases
 
-Before diving in the detailed use case let's revisit the roles and create two use case epics for each role before diving into more specialieded use cases:
-
-=== Integrator use cases
-
-The following use cases can be categorized by this epic use case below.
-So they are all about setting up the topology which includes brokers, channels and the importers that then can be used by a _Developer_.
-
-[quote]
-____
-As an _Integrator_ I want to manage importers (sources) and the infrastructure elements like brokers and channels to set up the eventing topology.
-____
-
-=== Developer use cases
-
-The developer is the user of the eventing topololgy.
-She creates services (presumably Knative Serving services) and connects them importers either directly, via a channel or via a broker.
-
-[quote]
-____
-As a _Developer_ I want to use the eventing topology to receive events for which I can register my services with filtering and chaining.
-____
-
-
-In the following and depend on which side of the <<abstraction,spectrum of abstractions>> we are moving, the full set of CRUD verbs are supported when managing simple resources:
+In the following and depending on which side of the <<abstraction,spectrum of abstractions>> we are moving, the full set of CRUD verbs are supported when managing simple resources:
 
 create <name>::
   Create an entity with _<name>_
@@ -97,110 +74,31 @@ delete <name>::
 list <prefix>::
   List entities. If _<name-prefix>_ is given, filter the entity names on this prefix.
 
-==== Service connections
+In the following use cases we refer to this set as "CRUD operations".
 
-There are several ways how a service can be registered for retrieving cloud events: direct, via broker or via subscription.
-Depending on the mode, custom resources created looks quite differently as well as the preconditions.
-However, this should not matter for the UI as they all serve the same use case, but with different capabilities.
+[[use-case-integrator]]
+=== Integrator use cases
 
-[quote]
-____
-As a _Developer_ I want to connect a service to the eventing infrastructure.
-____
-
-[source]
-----
-# Connect a service directly to an importer.
-$ kn service connect myservice --importer k8sapievents
-
-# Alternative syntax:
-$ kn service connect myservice --target importer:k8sapivevents
-
-# Connect a service to a broker with a trigger and the given filter
-$ kn service connect myservice --broker default --filter <filter-expression>
-
-Connection myservice-001 has been created.
-----
-
-Depending on the arguments, the service is connected to the event system in different ways:
-
-* Directly to an Importer (`--importer <importer-name>` or `--target importer:<importer-name>`)
-* With a subscription to a channel (`--channel <channel-name>` or `--target channel:<channel-name>`)
-* With a trigger connected to a broker (`--broker <broker-name>` or `--target broker:<broker-name>`)
-
-A connection gets by default a randomly created name, with the service name as prefix. This name is stored as part of the metadata of the created entities (directly on the `Importer`, on the `Subscription` or on the `Trigger` )
+The following use cases can be categorized by this epic use case below.
+So they are all about setting up the topology which includes brokers, channels and the importers that then can be used by a _Developer_.
 
 [quote]
 ____
-As a _Developer_ I want to update a connection
+As an _Integrator_ I want to manage importers (sources) and the infrastructure elements like brokers and channels to set up the eventing topology.
 ____
 
-[source]
-----
-$ kn service update-connection myservice-001 --filter <new filter>
-----
+[[importers]]
+==== Importers
 
-[quote]
-____
-As a _Developer_ I want to get the details of a connection
-____
+[[brokers]]
+==== Brokers
 
-[source]
-----
-$ kn service show-connection myservice-001
+[[channels]]
+==== Channels
 
-....
-----
+Beside that channels can be created implicitely via a Broker, channels also can be created manually by an _Integrator_ so that a _Developer_ can use them when subscribing to them (by creating connections as described in
 
-[quote]
-____
-As a _Developer_ I want to list all connections
-____
-
-[source]
-----
-# List all connections
-$ kn service list-connections
-
-NAME             SERVICE       TYPE       BROKER   FILTER  CHANNEL
-myservice-001    myservice     importer
-myservice-002    myservice     broker     default  ...     tempchannel
-mysecondsrv-001  mysecondsrv                               mychannel
-....
-----
-
-[quote]
-____
-As a _Developer_ I want to delete a connection.
-____
-
-[source]
-----
-# Delete the connection
-$ kn service delete-connection myservice-001
-----
-
-[NOTE]
-====
-Instead of piggy pack on the `service` command group a dedicated `connection` command group could be implemented as alternative, leading to commands like `kn connection create <name> --service myservice --broker mybroker`. The same might apply for the other subscription use cases, too. The good thing would be, that the connection name could be directly specified instead of adding it with a --name option as in the example above.
-
-The suggested commands would then translate to the standard <<management-operations, management operations>>:
-
-* `kn connection create myconn01 --service myservice --importer myimporter`
-* `kn connection update myconn02 --filter=<new filter>`
-* `kn connection show myconn02`
-* `kn connection list`
-* `kn connection delete myconn01`
-
-Of course also a mixed form could be offered: CRUD for `connection` (maybe minus "create") + a `kn service connect` for connecting to a service.
-====
-
-
-[[grp-channel]]
-=== Channel Management
-
-==== List all channel types
-
+.List all channel types
 [quote]
 ____
 As an _Integrator_ I want to find all channel types which are available by a given Knative installation
@@ -222,18 +120,12 @@ activemq            ActiceMQ backed channel
 Only those types which can be really used for the given Knative installation must show up here.
 For the four directly supported channel types _in-memory_, _kafka_, _pubsub_ and _natts_ the corresponding cluster features needs to be enabled.
 For custom channel types like _activemq_ in this example, also a local **channel plugin** needs to be present.
-See <<custom-types>> for more details how detection and channel plugin work.
+See <<custom-types>> for more details how channel type detection and channel plugins could work.
 
-==== Create a new channel
-
-[NOTE]
-====
-Whether a channel can be directly created or is only created as part of `broker` management should be discussed. It makes sense to create channels directly for a direct
-====
-
+.Create a new channel
 [quote]
 ____
-I want to create a channel from the CLI
+As an _Integrator_ I want to create a channel with a specified type
 ____
 
 Allows  channel-type specific creation options
@@ -243,15 +135,13 @@ A name which can be used as a label when listing all available channel types.
 Getting a textual description of all options supported by the channel plugin which is returned to the used if asking for help
 Well-known channel types (in-memory, kafka, pubsub, natss) are hardcoded in kn, but for the users its opaque whether a he creates a channel from such a well-known type for from a channel plugin
 
-==== List all channels
-
+.List all channels
 [quote]
 ____
 I want to list all channels
 ____
 
-==== Show channel details
-
+.Show channel details
 [quote]
 ____
 I want to see the details of a channel
@@ -260,8 +150,7 @@ ____
 Triggers attached to the channel
 Broker which uses the channel
 
-==== Remove a channel
-
+.Remove a channel
 [quote]
 ____
 I want to remove a channel
@@ -271,20 +160,121 @@ Check for triggers attached to the channel and prevent deletion by default if us
 --force for removing channel unconditionally
 --recursive removing channel + triggers referring this channel
 
-[[grp-importer]]
-==== `importer`
-
-
-[[grp-broker]]
-==== `broker`
-
+[[use-case-developer]]
 === Developer use cases
 
-[[grp-trigger]]
-==== `trigger`
+The developer is the user of the eventing topology.
+She creates services (presumably Knative Serving services) and connects them importers either directly, via a channel or via a broker.
 
-[[grp-sequence]]
-==== `sequence`
+[quote]
+____
+As a _Developer_ I want to use the eventing topology to receive events for which I can register my services with filtering and chaining.
+____
+
+[[connections]]
+==== Service connections
+
+There are several ways how a service can be registered for retrieving cloud events: direct, via broker or via subscription.
+Depending on the mode, custom resources created looks quite differently as well as the preconditions.
+However, this should not matter for the UI as they all serve the same use case, but with different capabilities.
+
+.Connect a service for receiving events
+[quote]
+____
+As a _Developer_ I want to connect a service to the eventing infrastructure.
+____
+
+[source]
+----
+# Connect a service directly to an importer, giving it a name
+$ kn connection create myconnection --service myservice --importer k8sapievents
+
+# Alternative syntax:
+$ kn connection create myconnection --service myservice --target importer:k8sapievents
+
+# Alternative syntax (starting from "service")
+$ kn service connect myservice --conection myconnection --target importer:k8sapievents
+
+# Connect a service to a broker with a trigger and the given filter
+$ kn service connect myservice --broker default --filter <filter-expression>
+
+Connection myservice-001 has been created.
+----
+
+Depending on the arguments, the service is connected to the event system in different ways:
+
+* Directly to an Importer (`--importer <importer-name>` or `--target importer:<importer-name>`)
+* With a subscription to a channel (`--channel <channel-name>` or `--target channel:<channel-name>`)
+* With a trigger connected to a broker (`--broker <broker-name>` or `--target broker:<broker-name>`)
+
+A connection gets by default a randomly created name, with the service name as prefix. This name is stored as part of the metadata of the created entities (directly on the `Importer`, on the `Subscription` or on the `Trigger` )
+
+.Update a connection to an event producer
+[quote]
+____
+As a _Developer_ I want to update a connection
+____
+
+[source]
+----
+$ kn connection update myconnection  --filter <new filter>
+----
+
+NOTE: Not sure if this is really needed and whether removing/adding such a connection would not be enough.
+
+.Show details of a connection
+[quote]
+____
+As a _Developer_ I want to see the details of a connection
+____
+
+[source]
+----
+$ kn connection show myconnection
+
+....
+----
+
+.List all connections
+[quote]
+____
+As a _Developer_ I want to list all connections
+____
+
+[source]
+----
+# List all connections
+$ kn connections list
+
+NAME             SERVICE       TYPE       BROKER   FILTER  CHANNEL
+myservice-001    myservice     importer
+myservice-002    myservice     broker     default  ...     tempchannel
+mysecondsrv-001  mysecondsrv                               mychannel
+....
+
+# List only connections which are attached to this service
+$ kn connections list --service myservice
+----
+
+.Delete a connection
+[quote]
+____
+As a _Developer_ I want to delete a connection.
+____
+
+[source]
+----
+# Delete the connection
+$ kn service delete-connection myconnection
+----
+
+[NOTE]
+====
+For creating a connection we could also piggy-back on the `service` command group as an (additional ?) alternative, leading to commands like `kn service connect myservice1 --broker mybroker`. The same might apply for the other subscription use cases, too. The connection's name would be auto generated from service name or provided via --name
+====
+
+[[sequences]]
+==== Sequences
 
 [[custom-types]]
 == Custom types
