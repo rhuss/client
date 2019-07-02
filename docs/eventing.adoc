@@ -2,6 +2,7 @@
 = Knative Eventing client support
 Roland Huß <rhuss@redhat.com>; Matthias Wessendorf <mwessendorf@redhat.com>
 v0.1.0, 2019-07-02
+:toc: right
 
 This document is a suggestion how support for Knative Eventing can be implemented within `kn`.
 This support should be on the same level and with the same user experience as the existing support for Knative Serving.
@@ -107,7 +108,7 @@ ____
 .Example
 [source]
 ----
-kn channel types
+$ kn channel types
 
 TYPE                DESCRIPTION
 in-memory           Non-persistent in memory channel (default)
@@ -122,7 +123,7 @@ For the four directly supported channel types _in-memory_, _kafka_, _pubsub_ and
 For custom channel types like _activemq_ in this example, also a local **channel plugin** needs to be present.
 See <<custom-types>> for more details how channel type detection and channel plugins could work.
 
-.Create a new channel
+===== Create a new channel
 [quote]
 ____
 As an _Integrator_ I want to create a channel with a specified type
@@ -135,13 +136,13 @@ A name which can be used as a label when listing all available channel types.
 Getting a textual description of all options supported by the channel plugin which is returned to the used if asking for help
 Well-known channel types (in-memory, kafka, pubsub, natss) are hardcoded in kn, but for the users its opaque whether a he creates a channel from such a well-known type for from a channel plugin
 
-.List all channels
+===== List all channels
 [quote]
 ____
 I want to list all channels
 ____
 
-.Show channel details
+===== Show channel details
 [quote]
 ____
 I want to see the details of a channel
@@ -150,7 +151,7 @@ ____
 Triggers attached to the channel
 Broker which uses the channel
 
-.Remove a channel
+===== Remove a channel
 [quote]
 ____
 I want to remove a channel
@@ -178,7 +179,7 @@ There are several ways how a service can be registered for retrieving cloud even
 Depending on the mode, custom resources created looks quite differently as well as the preconditions.
 However, this should not matter for the UI as they all serve the same use case, but with different capabilities.
 
-.Connect a service for receiving events
+===== Connect a service for receiving events
 [quote]
 ____
 As a _Developer_ I want to connect a service to the eventing infrastructure.
@@ -209,7 +210,7 @@ Depending on the arguments, the service is connected to the event system in diff
 
 A connection gets by default a randomly created name, with the service name as prefix. This name is stored as part of the metadata of the created entities (directly on the `Importer`, on the `Subscription` or on the `Trigger` )
 
-.Update a connection to an event producer
+===== Update a connection to an event producer
 [quote]
 ____
 As a _Developer_ I want to update a connection
@@ -222,7 +223,7 @@ $ kn connection update myconnection  --filter <new filter>
 
 NOTE: Not sure if this is really needed and whether removing/adding such a connection would not be enough.
 
-.Show details of a connection
+===== Show details of a connection
 [quote]
 ____
 As a _Developer_ I want to see the details of a connection
@@ -235,7 +236,7 @@ $ kn connection show myconnection
 ....
 ----
 
-.List all connections
+===== List all connections
 [quote]
 ____
 As a _Developer_ I want to list all connections
@@ -256,7 +257,7 @@ mysecondsrv-001  mysecondsrv                               mychannel
 $ kn connections list --service myservice
 ----
 
-.Delete a connection
+===== Delete a connection
 [quote]
 ____
 As a _Developer_ I want to delete a connection.
@@ -353,7 +354,6 @@ The same mechanism should be implemented for importer plugins for handling custo
 
 [[example-importer-twitter]]
 === Twitter Importer Plugin
-
 
 [[references]]
 == References
