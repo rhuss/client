@@ -49,7 +49,6 @@ This is not a discrete choice but a spectrum with exposing Knative CRs directly 
 
 Let's have a quick look on both ends of the spectrum:
 
-
 * [[abstraction-crs]] **Direct CR management** only provides a thin layer of creating a CR diretly. For example `kn service create myservice --image myorga/myservice:1.0` will just create a single Knative Serving `Service`. This already provides much value as it encapsulates already domain knowledge how to create the underlying CR. A good example here are the option `--concurrency-limit` and `--concurrency-target` which are kind of hard and soft limits for when to trigger an autoscaling event, but on the CR the end up in different places (direct CR field vs. provided as annotation)
 
 * [[abstraction-use-case]] **Use-case backed interface** encapsulates the management of Knative custom resources behind an opinionated user interface. Examples for this higher-order abstractions are:
@@ -57,30 +56,160 @@ Let's have a quick look on both ends of the spectrum:
 ** `kn rollout --strategy canary --canary-target=2 --image=myservice:2.0` for creating a new revision with for a new version with a target of %2 procent for the canary.
 ** `kn connect --source github://secretname@github.com/user/helloworld --select ... --destination service://myservice` for connecting an importer to a broker, creating a trigger with `--select` which references a Knative service `myservice` as sink.
 
-`kn` takes an approach somewhat in between, leaning towards to the _use case backed interface_ but also allows direct CR manipulation where needed.
+`kn` takes an approach somewhat inb etween, leaning towards to the _use-case backed interface_ but also allows direct CR management where needed.
 
 [[use-cases]]
 == Use Cases
 
-`kn` basic syntax is in the form `kn <noun> <verb>` with _<noun>_ representing a core concept like `service` or `revision`.
+Before diving in the detailed use case let's revisit the roles and create two use case epics for each role before diving into more specialieded use cases:
 
-For commands managing resources directly the _<noun>_ represents the resource to manage.
-The following sections reflect this grouping.
+=== Integrator use cases
+
+The following use cases can be categorized by this epic use case below.
+So they are all about setting up the topology which includes brokers, channels and the importers that then can be used by a _Developer_.
+
+[quote]
+____
+As an _Integrator_ I want to manage importers (sources) and the infrastructure elements like brokers and channels to set up the eventing topology.
+____
+
+=== Developer use cases
+
+The developer is the user of the eventing topololgy.
+She creates services (presumably Knative Serving services) and connects them importers either directly, via a channel or via a broker.
+
+[quote]
+____
+As a _Developer_ I want to use the eventing topology to receive events for which I can register my services with filtering and chaining.
+____
+
+
+In the following and depend on which side of the <<abstraction,spectrum of abstractions>> we are moving, the full set of CRUD verbs are supported when managing simple resources:
+
+create <name>::
+  Create an entity with _<name>_
+update <name>::
+  Update entity with _<name>_
+show <name>::
+  Show details of the entity _<name>_
+delete <name>::
+  Delete entity <name>
+list <prefix>::
+  List entities. If _<name-prefix>_ is given, filter the entity names on this prefix.
+
+==== Service connections
+
+There are several ways how a service can be registered for retrieving cloud events: direct, via broker or via subscription.
+Depending on the mode, custom resources created looks quite differently as well as the preconditions.
+However, this should not matter for the UI as they all serve the same use case, but with different capabilities.
+
+[quote]
+____
+As a _Developer_ I want to connect a service to the eventing infrastructure.
+____
+
+[source]
+----
+# Connect a service directly to an importer.
+$ kn service connect myservice --importer k8sapievents
+
+# Alternative syntax:
+$ kn service connect myservice --target importer:k8sapivevents
+
+# Connect a service to a broker with a trigger and the given filter
+$ kn service connect myservice --broker default --filter <filter-expression>
+
+Connection myservice-001 has been created.
+----
+
+Depending on the arguments, the service is connected to the event system in different ways:
+
+* Directly to an Importer (`--importer <importer-name>` or `--target importer:<importer-name>`)
+* With a subscription to a channel (`--channel <channel-name>` or `--target channel:<channel-name>`)
+* With a trigger connected to a broker (`--broker <broker-name>` or `--target broker:<broker-name>`)
+
+A connection gets by default a randomly created name, with the service name as prefix. This name is stored as part of the metadata of the created entities (directly on the `Importer`, on the `Subscription` or on the `Trigger` )
+
+[quote]
+____
+As a _Developer_ I want to update a connection
+____
+
+[source]
+----
+$ kn service update-connection myservice-001 --filter <new filter>
+----
+
+[quote]
+____
+As a _Developer_ I want to get the details of a connection
+____
+
+[source]
+----
+$ kn service show-connection myservice-001
+
+....
+----
+
+[quote]
+____
+As a _Developer_ I want to list all connections
+____
+
+[source]
+----
+# List all connections
+$ kn service list-connections
+
+NAME             SERVICE       TYPE       BROKER   FILTER  CHANNEL
+myservice-001    myservice     importer
+myservice-002    myservice     broker     default  ...     tempchannel
+mysecondsrv-001  mysecondsrv                               mychannel
+....
+----
+
+[quote]
+____
+As a _Developer_ I want to delete a connection.
+____
+
+[source]
+----
+# Delete the connection
+$ kn service delete-connection myservice-001
+----
+
+[NOTE]
+====
+Instead of piggy pack on the `service` command group a dedicated `connection` command group could be implemented as alternative, leading to commands like `kn connection create <name> --service myservice --broker mybroker`. The same might apply for the other subscription use cases, too. The good thing would be, that the connection name could be directly specified instead of adding it with a --name option as in the example above.
+
+The suggested commands would then translate to the standard <<management-operations, management operations>>:
+
+* `kn connection create myconn01 --service myservice --importer myimporter`
+* `kn connection update myconn02 --filter=<new filter>`
+* `kn connection show myconn02`
+* `kn connection list`
+* `kn connection delete myconn01`
+
+Of course also a mixed form could be offered: CRUD for `connection` (maybe minus "create") + a `kn service connect` for connecting to a service.
+====
+
 
 [[grp-channel]]
-=== Channel
+=== Channel Management
 
 ==== List all channel types
 
 [quote]
 ____
-As am _Integrator_ I want to find all channel types which are available by a given Knative installation
+As an _Integrator_ I want to find all channel types which are available by a given Knative installation
 ____
 
 .Example
 [source]
 ----
-kn channel list-types
+kn channel types
 
 TYPE                DESCRIPTION
 in-memory           Non-persistent in memory channel (default)
@@ -95,16 +224,11 @@ For the four directly supported channel types _in-memory_, _kafka_, _pubsub_ and
 For custom channel types like _activemq_ in this example, also a local **channel plugin** needs to be present.
 See <<custom-types>> for more details how detection and channel plugin work.
 
-[NOTE]
-====
-If channel creation is not exposed directly, but done indirectly e.g. when creating or modifying a broker, then this sub-command should be moved to this location as well.
-====
-
 ==== Create a new channel
 
 [NOTE]
 ====
-Whether a channel can be directly created or is only created as part of `broker` management should be discussed
+Whether a channel can be directly created or is only created as part of `broker` management should be discussed. It makes sense to create channels directly for a direct
 ====
 
 [quote]
