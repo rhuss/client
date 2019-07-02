@@ -85,11 +85,7 @@ The following use cases can be categorized by this epic use case below.
 So they are all about setting up the topology which includes brokers, channels and the importers that then can be used by a _Developer_.
 
 
-++++
-<p style="border: 10px black solid;">
-As an _Integrator_ I want to manage importers (sources) and the infrastructure elements like brokers and channels to set up the eventing topology.
-</p>
-++++
+NOTE: As an _Integrator_ I want to manage importers (sources) and the infrastructure elements like brokers and channels to set up the eventing topology.
 
 [[importers]]
 ==== Importers
@@ -103,10 +99,8 @@ As an _Integrator_ I want to manage importers (sources) and the infrastructure e
 Beside that channels can be created implicitely via a Broker, channels also can be created manually by an _Integrator_ so that a _Developer_ can use them when subscribing to them (by creating connections as described in
 
 ===== List all channel types
-[quote]
-____
-As an _Integrator_ I want to find all channel types which are available by a given Knative installation
-____
+
+NOTE: As an _Integrator_ I want to find all channel types which are available by a given Knative installation
 
 .Example
 [source]
@@ -127,10 +121,8 @@ For custom channel types like _activemq_ in this example, also a local **channel
 See <<custom-types>> for more details how channel type detection and channel plugins could work.
 
 ===== Create a new channel
-[quote]
-____
-As an _Integrator_ I want to create a channel with a specified type
-____
+
+NOTE: As an _Integrator_ I want to create a channel with a specified type
 
 Allows  channel-type specific creation options
 Get the channel options for external channel implementations. This might be implemented with a plugin model for channel plugins which are external programs and which follow a plugin SPI for
@@ -140,25 +132,16 @@ Getting a textual description of all options supported by the channel plugin whi
 Well-known channel types (in-memory, kafka, pubsub, natss) are hardcoded in kn, but for the users its opaque whether a he creates a channel from such a well-known type for from a channel plugin
 
 ===== List all channels
-[quote]
-____
-I want to list all channels
-____
+NOTE: As an _Integrator_ and as a _Developer_ I want to list all channels
 
 ===== Show channel details
-[quote]
-____
-I want to see the details of a channel
-____
+NOTE: As an _Integrator_ and as a _Developer_ I want to see the details of a channel
 
 Triggers attached to the channel
 Broker which uses the channel
 
 ===== Remove a channel
-[quote]
-____
-I want to remove a channel
-____
+NOTE: As an _Integrator_ I want to remove a channel
 
 Check for triggers attached to the channel and prevent deletion by default if used
 --force for removing channel unconditionally
@@ -170,10 +153,7 @@ Check for triggers attached to the channel and prevent deletion by default if us
 The developer is the user of the eventing topology.
 She creates services (presumably Knative Serving services) and connects them importers either directly, via a channel or via a broker.
 
-[quote]
-____
-As a _Developer_ I want to use the eventing topology to receive events for which I can register my services with filtering and chaining.
-____
+NOTE: As a _Developer_ I want to use the eventing topology to receive events for which I can register my services with filtering and chaining.
 
 [[connections]]
 ==== Service connections
@@ -183,10 +163,8 @@ Depending on the mode, custom resources created looks quite differently as well 
 However, this should not matter for the UI as they all serve the same use case, but with different capabilities.
 
 ===== Connect a service for receiving events
-[quote]
-____
-As a _Developer_ I want to connect a service to the eventing infrastructure.
-____
+
+NOTE: As a _Developer_ I want to connect a service to the eventing infrastructure.
 
 [source]
 ----
@@ -214,23 +192,17 @@ Depending on the arguments, the service is connected to the event system in diff
 A connection gets by default a randomly created name, with the service name as prefix. This name is stored as part of the metadata of the created entities (directly on the `Importer`, on the `Subscription` or on the `Trigger` )
 
 ===== Update a connection to an event producer
-[quote]
-____
-As a _Developer_ I want to update a connection
-____
+
+NOTE: As a _Developer_ I want to update a connection
 
 [source]
 ----
 $ kn connection update myconnection  --filter <new filter>
 ----
 
-NOTE: Not sure if this is really needed and whether removing/adding such a connection would not be enough.
-
 ===== Show details of a connection
-[quote]
-____
-As a _Developer_ I want to see the details of a connection
-____
+
+NOTE: As a _Developer_ I want to see the details of a connection
 
 [source]
 ----
@@ -240,10 +212,8 @@ $ kn connection show myconnection
 ----
 
 ===== List all connections
-[quote]
-____
-As a _Developer_ I want to list all connections
-____
+
+NOTE: As a _Developer_ I want to list all connections
 
 [source]
 ----
@@ -261,10 +231,8 @@ $ kn connections list --service myservice
 ----
 
 ===== Delete a connection
-[quote]
-____
-As a _Developer_ I want to delete a connection.
-____
+
+NOTE: As a _Developer_ I want to delete a connection.
 
 [source]
 ----
