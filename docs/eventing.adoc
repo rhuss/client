@@ -3,7 +3,7 @@
 Roland Huß <rhuss@redhat.com>; Matthias Wessendorf <mwessendorf@redhat.com>
 v0.1.0, 2019-07-02
 :icons: font
-:toc: right
+:data-uri:
 
 This document is a suggestion how support for Knative Eventing can be implemented within `kn`.
 This support should be on the same level and with the same user experience as the existing support for Knative Serving.
