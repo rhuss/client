@@ -144,7 +144,7 @@ Other types, like `kafka` for a Kafka backed event transport, needs extra instal
 In addition _Administrators_ can introduce be new custom channels which are not known in advance by `kn`.
 In order to use these custom channels a plugin architecture is propose in <<custom-types>>.
 
-One important use case for the _Integrator_ is to list all available types (installed ootb and custom) that can be used for creating a channel.
+One important use case for the _Integrator_ is to list all available types (installed well-known and custom types) that can be used for creating a channel.
 Let's have a look at this use case first.
 
 ===== List all channel types
@@ -178,64 +178,184 @@ See <<custom-types>> for more details how channel type detection and channel plu
 .Example
 [source]
 ----
-$ kn channel create mychannel --type kafka --kafka
+$ kn channel create mychannel --type kafka --num-partitions=4 --replication-factor=3
 ----
 
 The `channel create` command creates directly a channel with the given type.
 If no type is given then the default type is used (typically `in-memory`, but depends on the cluster configuration).
 
+In addition each type has specific configuration options (`--num-partitions` and `--replication-factor` in this example).
+The client verifies which options are available depending whether its a well-known type or a custome type:
 
+* For well-known types known to a vanilla Knative eventing installation, the possible options are included in kn.
+* For custom types, which are backed by a custom channel plugin, the plugin is called to get the possible options. This process is described in <<custom-types>>.
 
-
-ecific creation options
-Get the channel options for external channel implementations. This might be implemented with a plugin model for channel plugins which are external programs and which follow a plugin SPI for
-Getting the CRD kind which this channel plugin manages
-A name which can be used as a label when listing all available channel types.
-Getting a textual description of all options supported by the channel plugin which is returned to the used if asking for help
-Well-known channel types (in-memory, kafka, pubsub, natss) are hardcoded in kn, but for the users its opaque whether a he creates a channel from such a well-known type for from a channel plugin
+For user though this difference doesn't matter so on the UI surface well-known and custom types are treated the same.
 
 ===== List all channels
 **As an _Integrator_ and as a _Developer_ I want to list all channels**
 
+.Example
+[source]
+-----
+# List all channels for the current namespace
+$ kn channel list
+
+NAME             TYPE       BROKER  SUBSCRIBERS STATUS     INFLIGHT EVENTS
+channel-1        kafka              2           Up         0        34326
+myotherchannel   in-memory  default 4           Up
+-----
+This will list all channels available along with some summary description like the channel type, whether its created on behalf of a broker, the status, the number of subscriptions attached to this channel
+
+If easily accessible some statistic informations about e.g. how many events has passed the channel would be nice or how many events have not been delivered yet.
+
 ===== Show channel details
 **As an _Integrator_ and as a _Developer_ I want to see the details of a channel**
 
-Triggers attached to the channel
-Broker which uses the channel
+.Example
+[source]
+----
+# Show specific details for a channel
+$ kn channel show channel-1
+
+Type: kafka
+Broker: default
+Subscribers:
+- service1 [direct]
+
+Triggers:
+- myotherservice [event.type="bla"]
+----
+
+Any detail information available, also from related objects shoudl be shown here.
+This command is also useful for _Developers_ as it helps in understanding the event topology.
 
 ===== Remove a channel
 **As an _Integrator_ I want to remove a channel**
 
-Check for triggers attached to the channel and prevent deletion by default if used
---force for removing channel unconditionally
---recursive removing channel + triggers referring this channel
+.Example
+[source]
+----
+# Remove a channel but check whether its in use
+$ kn channel remove channel-1
+----
+
+This command will remove a named channel, but only those which are not managed by a broker.
+Also it should be checked whether the channel has some active subscriptions.
+If this is the case then by default an error must be returned.
+However an _Integrator_ can use `--force` to remove the channel *and* any active subscriptions.
 
 [[importers]]
 ==== Importers
 
-**As an _Integrator_ I want to find out all importer types available so that I know what importers I can create. **
-
 NOTE: Importers are the new name of the resources formerly known as "Sources". Please see this https://github.com/knative/eventing/blob/master/docs/decisions/sources-to-importers.md[document] for the motivation for this naming change.
 
-As there can be many custom importers, a similar concept like for various channel implementations should be used (see below)
+Importers are there to pump events into the eventing topology.
+Each importer has a specific type, much like channels.
+In fact, from an implementation's point of view importers can be treated the same as channels.
+And also from an UX point of view, the user interface for both can be nearly the same.
+But let's have a look.
+
+===== List all importer types
+
+**As an _Integrator_ I want to find out all importer types available so that I know what importers I can create. **
+
+.Example
+[source]
+----
+# List all well-know as well as custom importers
+$ kn importer types
+
+TYPE            DESCRIPTION
+kafka           Kafka importer picking up event from a Topic
+kubernetes-api  Import Kubernetes event
+cron            Periodic event from a cron importer
+twitter         Import tweets by user or search
+----
+
+As there can be well-known importers (e.g. kafka) but also custom importers (twitter)
+As you can see, the situatuon is the same as for <<channels>>, so similar concept apply here as well.
+
+For full details for how to handle custom types and seamless integrate with the well-known types can be found in <<custom-types>>.
+
+===== Create an importer
 
 **As an _Integrator_ I want to create a new importer so that a _Developer_ can use it**
-Options specific to the importer type should be possible to be provided
-Same UX like for channels wrt/ out-of-the-box provided importers and user supplied importers.
-Optional reference to a Knative service used a sink
 
-**As an _Integrator_ or _Developer_ I want to list all importers**
+.Example
+[source]
+----
+# Create an importer which picks up Tweets mentioning "knative"
+$ kn importer create twitter-knative --type twitter --search knative
+----
+
+The mandatory flag for an importer is `--type` which specifies the type to use.
+The value given there must be one of the list as given by `kn importer types`.
+
+All other options are specific to the importer's type, much like the type of a channel.
+
+An addition could be to provide here already a `--service` to create the connection to a service, but for the sake of conciseness creation of this connection should be left to `kn connection create` (or `kn connect` if we opt for a verb based flow for _Developer_ use cases).
+
+==== List importers
+
+**As an _Integrator_ or _Developer_ I want to list all existing importers**
+
+.Example
+[source]
+----
+# List all created importers
+$ kn importer list
+
+NAME               TYPE         RESOURCE
+twitter-knative    twitter      twittersource.importers.k8spatterns.io
+all-seconds        cron         cronjobsources.sources.eventing.knative.dev
+----
+
+==== Show importer details
 
 **As an _Integrator_ or _Developer_ I want to see the details of an importer**
 
-Type
-Configuration options
-Usages (broker, sinks)
+.Example
+[source]
+----
+# Show details for a specific importer
+$ kn importer show twitter-knative
+
+Name:            twitter-knative
+Resource:        twittesource.importers.k8spatterns.io
+Type:            twitter
+Search:          knative
+Last Checked:    2019-07-04 04:50:12
+
+Broker:          default
+Subscribers:
+- ....
+
+....
+----
+
+As expected `kn importer show` will show all details for an importer.
+This is an human readable output, and specific to the importer's type.
+
+==== Delete importer
 
 **As an _Integrator_ I want to delete an importer**
 
+.Example
+[source]
+----
+# Delete an importer
+$ kn delete importer twitter-knative
+----
+
+Deletion should check, whether this importer is still in use.
+If so, an error shoudl be returned.
+An _Integrator_ can still delete an importer with the option `--force`.
+In this case all subscriptions should be removed as well.
+
 [[brokers]]
 ==== Brokers
+
 
 **As an _Integrator_ I want to create a broker in a namespace so that a _Developer_ can use it**
 
@@ -255,7 +375,7 @@ Check for Importers using the broker, and prevent deletion of broker if in use
 === Developer use cases
 
 The developer is the user of the eventing topology.
-She creates services (presumably Knative Serving services) and connects them importers either directly, via a channel or via a broker.
+She creates services (presumably Knative serving services) and connects them importers either directly, via a channel or via a broker.
 
 **As a _Developer_ I want to use the eventing topology to receive events for which I can register my services with filtering and chaining.**
 
@@ -447,3 +567,9 @@ The same mechanism should be implemented for importer plugins for handling custo
 * https://github.com/knative/client/issues/217[Kn Client issue] tracking eventing integration
 * [[eventing-ux-issue]] https://github.com/knative/eventing/issues/1381[Kn Eventing issue] tracking UI/UX
 * [[eventing-ux-scenarios]] https://docs.google.com/document/d/1DpiSL2dUcYS2n7yXOIG5LJwyIC1lY9q_W8-56U1SvKM/edit?hl=en#[Scenarios for Knative Eventing]
+
+== Glossar
+
+event topology:: The concrete setup with importers, channels and brokers as it can be used by _Developers_
+custom type:: Type of channels and importers which are outside the set of well-known types
+channel plugin:: A clientside plugin for a channel with a custom type
