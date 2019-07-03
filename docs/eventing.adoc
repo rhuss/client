@@ -34,22 +34,21 @@ Finally, a set of <<examples>> for a managing importers like an (already contrib
 
 * For _Integrators_ the full flexibility should be available, so that the eventing topology can be setup flexibly. The UI for _Integrator_ use cases is a thin wrapper over the underlying custom resources (<<channels>>, <<importers>>, <<broker>>). The benefit here is not only a simplified resource management but also how `kn` can deal with custom implementations of importers and channels. For this a very specific plugin architecture is suggested. See <<custom-types>> for more information about this extension hook.
 
-* For _Developers_ a more opinionated approach is taken, shielding the developer from direct resource management. There are currently three different ways how a service can be registered for events:
-+
-** Direct linkage to an importer
-** Subscription to a channel
-** Subscription to a broker with a trigger
-+
-All of these different ways are to be shielded behind a common UX. In <<connections>> a suggestion is made how this can be achieved with a noun "connection" that fits into the general '<noun> <verb>' scheme of `ln` and is not directly connected to any backing CR. For <<sequences>> a workflow is suggested to build up such a sequence of connected transforming services.
+* For _Developers_ a more opinionated approach is taken, shielding the developer from direct resource management. There are currently three different ways how a service can be registered for events: Direct linkage to an importer, subscription to a channel, or subscription to a broker with a trigger. All of these different ways are to be shielded behind a common UX. In <<connections>> a suggestion is made how this can be achieved with a noun "connection" that fits into the general '_<noun> <verb>_' scheme of `kn` and is not directly connected to any backing CR. For <<sequences>> a workflow is suggested to build up such a sequence of connected transforming services.
 
 To summarize this summary :) there are three key take-aways from this document:
 
-[IMPORTANT]
-====
-. Differentiation between the _Integrator_ and _Developer_ role for Knative eventing (though both can be played by the same user of course).
-. How to extend importers and channels with types that are initially unknown to `kn`
-. How to help _Developers_ with an opinionated way to connect their services to the event topology.
-====
+[cols="1,10"]
+|===
+| 🎥
+| Differentiate between the **_Integrator_** and **_Developer_** role.
+
+| 🔌
+| How to **extend** importers and channels with types that are initially unknown to `kn`
+
+| 🎁
+| How to help _Developers_ with an **opinionated way** to connect their services to the event topology.
+|===
 
 Let's have a look on the identified roles first.
 
@@ -82,10 +81,10 @@ Let's have a quick look on both ends of the spectrum:
 * [[abstraction-crs]] **Direct CR management** only provides a thin layer of creating a CR diretly. For example `kn service create myservice --image myorga/myservice:1.0` will just create a single Knative Serving `Service`. This already provides much value as it encapsulates already domain knowledge how to create the underlying CR. A good example here are the option `--concurrency-limit` and `--concurrency-target` which are kind of hard and soft limits for when to trigger an autoscaling event, but on the CR the end up in different places (direct CR field vs. provided as annotation). _Integrator_ use cases tend toward this end.
 
 * [[abstraction-use-case]] **Use-case backed interface** encapsulates the management of Knative custom resources behind an opinionated user interface. Examples for this higher-order abstractions are:
-+
 ** `kn rollout --strategy blue-green` for creating
 ** `kn rollout --strategy canary --canary-target=2 --image=myservice:2.0` for creating a new revision with for a new version with a target of %2 procent for the canary.
 ** `kn connect --source github://secretname@github.com/user/helloworld --select ... --destination service://myservice` for connecting an importer to a broker, creating a trigger with `--select` which references a Knative service `myservice` as sink.
+
 +
 _Developer_ use cases are opinionated and make the underlying custom resources more or less opaque.
 
@@ -256,6 +255,7 @@ $ kn connection update myconnection  --filter <new filter>
 
 NOTE: As a _Developer_ I want to see the details of a connection
 
+.Example
 [source]
 ----
 $ kn connection show myconnection
@@ -344,6 +344,7 @@ The name of the binary reflects the type that should be used in `kn channel crea
 The following commands given as arguments are supported by the executable
 
 .Plugin contract for importer and channel plugins
+[cols="1,7"]
 |===
 | Command | Description
 
