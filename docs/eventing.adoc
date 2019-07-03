@@ -25,6 +25,34 @@ A suggestion how to deal with the dynamic nature of <<importers>> and <<channels
 
 Finally, a set of <<examples>> for a managing importers like an (already contributed) <<example-kafka-source, KafkaSource>> and an (imaginary) <<twitter-source, TwitterSource>> tries to illustrate they implementation suggestion for dynamic types.
 
+[[summary]]
+== Summary
+
+* Introduce roles
+
+`kn` takes an approach somewhat in between but with a clear tendency with respect to each use-case's role:
+
+* For _Integrators_ the full flexibility should be available, so that the eventing topology can be setup flexibly. The UI for _Integrator_ use cases is a thin wrapper over the underlying custom resources (<<channels>>, <<importers>>, <<broker>>). The benefit here is not only a simplified resource management but also how `kn` can deal with custom implementations of importers and channels. For this a very specific plugin architecture is suggested. See <<custom-types>> for more information about this extension hook.
+
+* For _Developers_ a more opinionated approach is taken, shielding the developer from direct resource management. There are currently three different ways how a service can be registered for events:
++
+** Direct linkage to an importer
+** Subscription to a channel
+** Subscription to a broker with a trigger
++
+All of these different ways are to be shielded behind a common UX. In <<connections>> a suggestion is made how this can be achieved with a noun "connection" that fits into the general '<noun> <verb>' scheme of `ln` and is not directly connected to any backing CR. For <<sequences>> a workflow is suggested to build up such a sequence of connected transforming services.
+
+To summarize this summary :) there are three key take-aways from this document:
+
+[IMPORTANT]
+====
+. Differentiation between the _Integrator_ and _Developer_ role for Knative eventing (though both can be played by the same user of course).
+. How to extend importers and channels with types that are initially unknown to `kn`
+. How to help _Developers_ with an opinionated way to connect their services to the event topology.
+====
+
+Let's have a look on the identified roles first.
+
 [[roles]]
 == Roles
 
@@ -51,14 +79,15 @@ This is not a discrete choice but a spectrum with exposing Knative CRs directly 
 
 Let's have a quick look on both ends of the spectrum:
 
-* [[abstraction-crs]] **Direct CR management** only provides a thin layer of creating a CR diretly. For example `kn service create myservice --image myorga/myservice:1.0` will just create a single Knative Serving `Service`. This already provides much value as it encapsulates already domain knowledge how to create the underlying CR. A good example here are the option `--concurrency-limit` and `--concurrency-target` which are kind of hard and soft limits for when to trigger an autoscaling event, but on the CR the end up in different places (direct CR field vs. provided as annotation)
+* [[abstraction-crs]] **Direct CR management** only provides a thin layer of creating a CR diretly. For example `kn service create myservice --image myorga/myservice:1.0` will just create a single Knative Serving `Service`. This already provides much value as it encapsulates already domain knowledge how to create the underlying CR. A good example here are the option `--concurrency-limit` and `--concurrency-target` which are kind of hard and soft limits for when to trigger an autoscaling event, but on the CR the end up in different places (direct CR field vs. provided as annotation). _Integrator_ use cases tend toward this end.
 
 * [[abstraction-use-case]] **Use-case backed interface** encapsulates the management of Knative custom resources behind an opinionated user interface. Examples for this higher-order abstractions are:
++
 ** `kn rollout --strategy blue-green` for creating
 ** `kn rollout --strategy canary --canary-target=2 --image=myservice:2.0` for creating a new revision with for a new version with a target of %2 procent for the canary.
 ** `kn connect --source github://secretname@github.com/user/helloworld --select ... --destination service://myservice` for connecting an importer to a broker, creating a trigger with `--select` which references a Knative service `myservice` as sink.
-
-`kn` takes an approach somewhat inb etween, leaning towards to the _use-case backed interface_ but also allows direct CR management where needed.
++
+_Developer_ use cases are opinionated and make the underlying custom resources more or less opaque.
 
 [[use-cases]]
 == Use Cases
@@ -84,19 +113,42 @@ In the following use cases we refer to this set as "CRUD operations".
 The following use cases can be categorized by this epic use case below.
 So they are all about setting up the topology which includes brokers, channels and the importers that then can be used by a _Developer_.
 
-
 NOTE: As an _Integrator_ I want to manage importers (sources) and the infrastructure elements like brokers and channels to set up the eventing topology.
+
+The following use cases are a break down, how the _eventing topology_ can actually be managed.
 
 [[importers]]
 ==== Importers
 
+I want to find out all importer types available for creating a new importer
+As there can be many custom importers, a similar concept like for various channel implementations should be used (see below)
+I want to create a new importer
+Options specific to the importer type should be possible to be provided
+Same UX like for channels wrt/ out-of-the-box provided importers and user supplied importers.
+Optional reference to a Knative service used a sink
+I want to list all importers
+I want to see details of an importer
+Type
+Configuration options
+Usages (broker, sinks)
+I want to delete an importer
+
 [[brokers]]
 ==== Brokers
+
+I want to create a broker in a namespace
+I want to list all brokers in a namespace
+I want to see the details of a broker
+What channels are attached
+Importers referencing the broker
+I want to remove a broker
+Check for Importers using the broker, and prevent deletion of broker if in use
+--force to delete nevertheless
 
 [[channels]]
 ==== Channels
 
-Beside that channels can be created implicitely via a Broker, channels also can be created manually by an _Integrator_ so that a _Developer_ can use them when subscribing to them (by creating connections as described in
+Beside that channels can be created implicitely via a broker, channels also can be created manually by an _Integrator_ so that a _Developer_ can use them when subscribing to them (by creating connections as described in
 
 ===== List all channel types
 
@@ -247,6 +299,12 @@ For creating a connection we could also piggy-back on the `service` command grou
 
 [[sequences]]
 ==== Sequences
+
+I want to interactively build up a Sequence (new in Eventing 0.7.0) by subsequent calls to an “append” or “insert” calls for adding transformer services.
+I want to list all sequences
+I want to remove a sequence (with usage check)
+I want to see the details of a sequence
+List of all transformers contained in the sequence
 
 [[custom-types]]
 == Custom types
