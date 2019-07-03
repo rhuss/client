@@ -78,33 +78,48 @@ This is not a discrete choice but a spectrum with exposing Knative CRs directly 
 
 Let's have a quick look on both ends of the spectrum:
 
-* [[abstraction-crs]] **Direct CR management** only provides a thin layer of creating a CR diretly. For example `kn service create myservice --image myorga/myservice:1.0` will just create a single Knative Serving `Service`. This already provides much value as it encapsulates already domain knowledge how to create the underlying CR. A good example here are the option `--concurrency-limit` and `--concurrency-target` which are kind of hard and soft limits for when to trigger an autoscaling event, but on the CR the end up in different places (direct CR field vs. provided as annotation). _Integrator_ use cases tend toward this end.
+* [[abstraction-crs]] **Direct resource management** only provides a thin layer of creating a CR diretly. For example `kn service create myservice --image myorga/myservice:1.0` will just create a single Knative Serving `Service`. This already provides much value as it encapsulates already domain knowledge how to create the underlying CR. A good example here are the option `--concurrency-limit` and `--concurrency-target` which are kind of hard and soft limits for when to trigger an autoscaling event, but on the CR the end up in different places (direct CR field vs. provided as annotation). _Integrator_ use cases tend toward this end.
 
 * [[abstraction-use-case]] **Use-case backed interface** encapsulates the management of Knative custom resources behind an opinionated user interface. Examples for this higher-order abstractions are:
 ** `kn rollout --strategy blue-green` for creating
 ** `kn rollout --strategy canary --canary-target=2 --image=myservice:2.0` for creating a new revision with for a new version with a target of %2 procent for the canary.
 ** `kn connect --source github://secretname@github.com/user/helloworld --select ... --destination service://myservice` for connecting an importer to a broker, creating a trigger with `--select` which references a Knative service `myservice` as sink.
-
 +
 _Developer_ use cases are opinionated and make the underlying custom resources more or less opaque.
 
 [[use-cases]]
 == Use Cases
 
-In the following and depending on which side of the <<abstraction,spectrum of abstractions>> we are moving, the full set of CRUD verbs are supported when managing simple resources:
+All the use case in this section are crafted with this `kn` UI scheme in mind:
 
-create <name>::
-  Create an entity with _<name>_
-update <name>::
-  Update entity with _<name>_
-show <name>::
-  Show details of the entity _<name>_
-delete <name>::
-  Delete entity <name>
-list <prefix>::
-  List entities. If _<name-prefix>_ is given, filter the entity names on this prefix.
+kn <noun> create <name>:: Create a _<noun>_ identified by _<name>_
+kn <noun> update <name>:: Update a _<noun>_ identified by _<name>_
+kn <noun> show <name>:: Show details of the _<noun>_ instance with name _<name>_ footnote:[This is currently still named as _describe_ but under discussion to be renamed.]
+kn <noun> delete <name>:: Delete an instance of _<noun>_  with _<name>_
+kn <noun> list <prefix>:: List entities. If _<name-prefix>_ is given, filter the entity names on this prefix.
 
-In the following use cases we refer to this set as "CRUD operations".
+_<noun>_ can be either directly reflecting the underlying Knative custom resource (typical for _Integrator_ based use cases) or more abstract, developer oriented, concepts like the proposed `connection` which describes any connection from a `service` to the event backend. See <<connections>> for details.
+
+Also, when there is a (hierarchical) relationship between _<nouns>_ (like between `service` and `revision`) special option might filter on the high-level _<noun>_ (like in `kn revision list --service myservice`).
+
+This scheme which has been applied successfully for managine Knative serving should be preserved for Knatice eventing support as well.
+
+It is to be discussed whether the scheme should be relaxed for supporting developer workflows more naturally, eg. like in
+
+```
+kn rollout
+kn rollback
+kn connect <service> --broker mybroker
+kn disconnect <service> --all
+kn split revision1:10% revision2:90%
+```
+
+so, in the general fourm `kn <verb>` where verb concretely refers a developer use case which is not mapped 1:1 to entities (so more of category _Use-case backed interface_)
+
+NOTE: In the example above `route` is used as a verb, which clashes with the Knative serving custom resource `Route`.
+
+And of course a mixed format could be imaginable as well. E.g. creating and removing connections with `kn connect` and `kn disconnect`, but listing, updating and showing connections with `kn connection list`, `kn connection update` and `kn connection show`
+
 
 [[use-case-integrator]]
 === Integrator use cases
@@ -114,13 +129,93 @@ So they are all about setting up the topology which includes brokers, channels a
 
 **As an _Integrator_ I want to manage importers (sources) and the infrastructure elements like brokers and channels to set up the eventing topology.**
 
-The following use cases are a break down, how the _eventing topology_ can actually be managed.
+The following use cases are a break down, how the _eventing topology_ can actually be managed by directly managing the underlying Knative eventing resources.
+
+[[channels]]
+==== Channels
+
+Channels are used for connecting importers/source to services and provide the backbone for the eventing system.
+They can be created implicitely via brokers, but the can also be created directly by _Integrators_ so a _Developer_ can subscribe a service to it.
+
+A channel has a certain type which determines how events are persisted and distributed.
+There is a set of predefined types but not all available out of the box on every installation of Knative eventing.
+The only channel type that is always available is an `in-memory` type.
+Other types, like `kafka` for a Kafka backed event transport, needs extra installation efforts by an _Administrator_.
+In addition _Administrators_ can introduce be new custom channels which are not known in advance by `kn`.
+In order to use these custom channels a plugin architecture is propose in <<custom-types>>.
+
+One important use case for the _Integrator_ is to list all available types (installed ootb and custom) that can be used for creating a channel.
+Let's have a look at this use case first.
+
+===== List all channel types
+
+**As an _Integrator_ I want to find all channel types which are available by a given Knative installation**
+
+.Example
+[source]
+----
+# List all channel types which are installed on the cluster and for
+# which client support is available
+$ kn channel types
+
+TYPE                DESCRIPTION
+in-memory           Non-persistent in memory channel (default)
+kafka               Kafka backed channel
+pubsub              Google Cloud pub-sub
+natss               NATSS
+activemq            ActiceMQ backed channel
+----
+
+Only those types which can be really used for the given Knative installation must show up here.
+For the four directly supported channel types _in-memory_, _kafka_, _pubsub_ and _natts_ the corresponding cluster features needs to be enabled by the _Administrator_.
+For custom channel types like e.g. the _activemq_ in this example, also a local **channel plugin** needs to be present.
+See <<custom-types>> for more details how channel type detection and channel plugins are proposed to work.
+
+===== Create a new channel
+
+**As an _Integrator_ I want to create a channel with a specified type**
+
+.Example
+[source]
+----
+$ kn channel create mychannel --type kafka --kafka
+----
+
+The `channel create` command creates directly a channel with the given type.
+If no type is given then the default type is used (typically `in-memory`, but depends on the cluster configuration).
+
+
+
+
+ecific creation options
+Get the channel options for external channel implementations. This might be implemented with a plugin model for channel plugins which are external programs and which follow a plugin SPI for
+Getting the CRD kind which this channel plugin manages
+A name which can be used as a label when listing all available channel types.
+Getting a textual description of all options supported by the channel plugin which is returned to the used if asking for help
+Well-known channel types (in-memory, kafka, pubsub, natss) are hardcoded in kn, but for the users its opaque whether a he creates a channel from such a well-known type for from a channel plugin
+
+===== List all channels
+**As an _Integrator_ and as a _Developer_ I want to list all channels**
+
+===== Show channel details
+**As an _Integrator_ and as a _Developer_ I want to see the details of a channel**
+
+Triggers attached to the channel
+Broker which uses the channel
+
+===== Remove a channel
+**As an _Integrator_ I want to remove a channel**
+
+Check for triggers attached to the channel and prevent deletion by default if used
+--force for removing channel unconditionally
+--recursive removing channel + triggers referring this channel
 
 [[importers]]
 ==== Importers
 
+**As an _Integrator_ I want to find out all importer types available so that I know what importers I can create. **
 
-**As an _Integrator_ I want to find out all importer types available for creating a new importer**
+NOTE: Importers are the new name of the resources formerly known as "Sources". Please see this https://github.com/knative/eventing/blob/master/docs/decisions/sources-to-importers.md[document] for the motivation for this naming change.
 
 As there can be many custom importers, a similar concept like for various channel implementations should be used (see below)
 
@@ -155,60 +250,6 @@ Importers referencing the broker
 
 Check for Importers using the broker, and prevent deletion of broker if in use
 --force to delete nevertheless
-
-[[channels]]
-==== Channels
-
-Beside that channels can be created implicitely via a broker, channels also can be created manually by an _Integrator_ so that a _Developer_ can use them when subscribing to them (by creating connections as described in
-
-===== List all channel types
-
-**As an _Integrator_ I want to find all channel types which are available by a given Knative installation**
-
-.Example
-[source]
-----
-$ kn channel types
-
-TYPE                DESCRIPTION
-in-memory           Non-persistent in memory channel (default)
-kafka               Kafka backed channel
-pubsub              Google Cloud pub-sub
-natss               NATSS
-activemq            ActiceMQ backed channel
-----
-
-Only those types which can be really used for the given Knative installation must show up here.
-For the four directly supported channel types _in-memory_, _kafka_, _pubsub_ and _natts_ the corresponding cluster features needs to be enabled.
-For custom channel types like _activemq_ in this example, also a local **channel plugin** needs to be present.
-See <<custom-types>> for more details how channel type detection and channel plugins could work.
-
-===== Create a new channel
-
-**As an _Integrator_ I want to create a channel with a specified type**
-
-Allows  channel-type specific creation options
-Get the channel options for external channel implementations. This might be implemented with a plugin model for channel plugins which are external programs and which follow a plugin SPI for
-Getting the CRD kind which this channel plugin manages
-A name which can be used as a label when listing all available channel types.
-Getting a textual description of all options supported by the channel plugin which is returned to the used if asking for help
-Well-known channel types (in-memory, kafka, pubsub, natss) are hardcoded in kn, but for the users its opaque whether a he creates a channel from such a well-known type for from a channel plugin
-
-===== List all channels
-**As an _Integrator_ and as a _Developer_ I want to list all channels**
-
-===== Show channel details
-**As an _Integrator_ and as a _Developer_ I want to see the details of a channel**
-
-Triggers attached to the channel
-Broker which uses the channel
-
-===== Remove a channel
-**As an _Integrator_ I want to remove a channel**
-
-Check for triggers attached to the channel and prevent deletion by default if used
---force for removing channel unconditionally
---recursive removing channel + triggers referring this channel
 
 [[use-case-developer]]
 === Developer use cases
