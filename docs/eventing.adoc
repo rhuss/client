@@ -112,35 +112,47 @@ In the following use cases we refer to this set as "CRUD operations".
 The following use cases can be categorized by this epic use case below.
 So they are all about setting up the topology which includes brokers, channels and the importers that then can be used by a _Developer_.
 
-NOTE: As an _Integrator_ I want to manage importers (sources) and the infrastructure elements like brokers and channels to set up the eventing topology.
+**As an _Integrator_ I want to manage importers (sources) and the infrastructure elements like brokers and channels to set up the eventing topology.**
 
 The following use cases are a break down, how the _eventing topology_ can actually be managed.
 
 [[importers]]
 ==== Importers
 
-I want to find out all importer types available for creating a new importer
+
+**As an _Integrator_ I want to find out all importer types available for creating a new importer**
+
 As there can be many custom importers, a similar concept like for various channel implementations should be used (see below)
-I want to create a new importer
+
+**As an _Integrator_ I want to create a new importer so that a _Developer_ can use it**
 Options specific to the importer type should be possible to be provided
 Same UX like for channels wrt/ out-of-the-box provided importers and user supplied importers.
 Optional reference to a Knative service used a sink
-I want to list all importers
-I want to see details of an importer
+
+**As an _Integrator_ or _Developer_ I want to list all importers**
+
+**As an _Integrator_ or _Developer_ I want to see the details of an importer**
+
 Type
 Configuration options
 Usages (broker, sinks)
-I want to delete an importer
+
+**As an _Integrator_ I want to delete an importer**
 
 [[brokers]]
 ==== Brokers
 
-I want to create a broker in a namespace
-I want to list all brokers in a namespace
-I want to see the details of a broker
+**As an _Integrator_ I want to create a broker in a namespace so that a _Developer_ can use it**
+
+**As an _Integrator_ or _Developer_ I want to list all brokers in a namespace**
+
+**As an _Integrator_ or _Developer_ I want to see the details of a broker**
+
 What channels are attached
 Importers referencing the broker
-I want to remove a broker
+
+**As an _Integrator_ I want to remove a broker**
+
 Check for Importers using the broker, and prevent deletion of broker if in use
 --force to delete nevertheless
 
@@ -151,7 +163,7 @@ Beside that channels can be created implicitely via a broker, channels also can 
 
 ===== List all channel types
 
-NOTE: As an _Integrator_ I want to find all channel types which are available by a given Knative installation
+**As an _Integrator_ I want to find all channel types which are available by a given Knative installation**
 
 .Example
 [source]
@@ -173,7 +185,7 @@ See <<custom-types>> for more details how channel type detection and channel plu
 
 ===== Create a new channel
 
-NOTE: As an _Integrator_ I want to create a channel with a specified type
+**As an _Integrator_ I want to create a channel with a specified type**
 
 Allows  channel-type specific creation options
 Get the channel options for external channel implementations. This might be implemented with a plugin model for channel plugins which are external programs and which follow a plugin SPI for
@@ -183,16 +195,16 @@ Getting a textual description of all options supported by the channel plugin whi
 Well-known channel types (in-memory, kafka, pubsub, natss) are hardcoded in kn, but for the users its opaque whether a he creates a channel from such a well-known type for from a channel plugin
 
 ===== List all channels
-NOTE: As an _Integrator_ and as a _Developer_ I want to list all channels
+**As an _Integrator_ and as a _Developer_ I want to list all channels**
 
 ===== Show channel details
-NOTE: As an _Integrator_ and as a _Developer_ I want to see the details of a channel
+**As an _Integrator_ and as a _Developer_ I want to see the details of a channel**
 
 Triggers attached to the channel
 Broker which uses the channel
 
 ===== Remove a channel
-NOTE: As an _Integrator_ I want to remove a channel
+**As an _Integrator_ I want to remove a channel**
 
 Check for triggers attached to the channel and prevent deletion by default if used
 --force for removing channel unconditionally
@@ -204,7 +216,7 @@ Check for triggers attached to the channel and prevent deletion by default if us
 The developer is the user of the eventing topology.
 She creates services (presumably Knative Serving services) and connects them importers either directly, via a channel or via a broker.
 
-NOTE: As a _Developer_ I want to use the eventing topology to receive events for which I can register my services with filtering and chaining.
+**As a _Developer_ I want to use the eventing topology to receive events for which I can register my services with filtering and chaining.**
 
 [[connections]]
 ==== Service connections
@@ -215,7 +227,7 @@ However, this should not matter for the UI as they all serve the same use case, 
 
 ===== Connect a service for receiving events
 
-NOTE: As a _Developer_ I want to connect a service to the eventing infrastructure.
+**As a _Developer_ I want to connect a service to the eventing infrastructure.**
 
 [source]
 ----
@@ -244,7 +256,7 @@ A connection gets by default a randomly created name, with the service name as p
 
 ===== Update a connection to an event producer
 
-NOTE: As a _Developer_ I want to update a connection
+**As a _Developer_ I want to update a connection**
 
 [source]
 ----
@@ -253,7 +265,7 @@ $ kn connection update myconnection  --filter <new filter>
 
 ===== Show details of a connection
 
-NOTE: As a _Developer_ I want to see the details of a connection
+**As a _Developer_ I want to see the details of a connection**
 
 .Example
 [source]
@@ -265,7 +277,7 @@ $ kn connection show myconnection
 
 ===== List all connections
 
-NOTE: As a _Developer_ I want to list all connections
+**As a _Developer_ I want to list all connections**
 
 [source]
 ----
@@ -284,7 +296,7 @@ $ kn connections list --service myservice
 
 ===== Delete a connection
 
-NOTE: As a _Developer_ I want to delete a connection.
+**As a _Developer_ I want to delete a connection.**
 
 [source]
 ----
@@ -300,10 +312,19 @@ For creating a connection we could also piggy-back on the `service` command grou
 [[sequences]]
 ==== Sequences
 
-I want to interactively build up a Sequence (new in Eventing 0.7.0) by subsequent calls to an “append” or “insert” calls for adding transformer services.
-I want to list all sequences
-I want to remove a sequence (with usage check)
-I want to see the details of a sequence
+**As a _Developer_ I want to interactively build up a sequence.**
+
+* Interactive workflow by subsequent calls to an "append" or "insert" calls for adding transformer services.
+
+**As a _Developer_ I want to update a sequence.**
+
+**As a _Developer_ I want to list all sequences.**
+
+**As a _Developer_ I want to remove a sequence.**
+
+(with usage check)
+
+**As a _Developer_ I want to see the details of a sequence**
 List of all transformers contained in the sequence
 
 [[custom-types]]
