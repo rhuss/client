@@ -1,5 +1,5 @@
 
-= Knative Eventing client support
+= Kn support for Knative eventing
 Dr. Roland Huß <rhuss@redhat.com>; Matthias Wessendorf <mwessendorf@redhat.com>
 :revnumber: v0.1.0
 :revdate: {localdate}
