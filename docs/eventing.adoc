@@ -609,7 +609,7 @@ NOTE:: To be done
 * [[eventing-ux-issue]] https://github.com/knative/eventing/issues/1381[Kn Eventing issue] tracking UI/UX
 * [[eventing-ux-scenarios]] https://docs.google.com/document/d/1DpiSL2dUcYS2n7yXOIG5LJwyIC1lY9q_W8-56U1SvKM/edit?hl=en#[Scenarios for Knative Eventing]
 
-== Glossar
+== Glossary
 
 [[def-event-topology]]
 Event topology:: The concrete setup of Knative eventing with importers, channels and brokers managed by _Integrators_ and used by _Developers_
