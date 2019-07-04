@@ -159,9 +159,7 @@ In order to use these custom channels a plugin architecture is propose in <<cust
 One important use case for the _Integrator_ is to list all available types (installed well-known and custom types) that can be used for creating a channel.
 Let's have a look at this use case first.
 
-===== List all channel types
-
-**As an _Integrator_ I want to find all channel types which are available by a given Knative installation**
+===== As an _Integrator_ I want to find all channel types which are available by a given Knative installation
 
 .Example
 [source]
@@ -183,9 +181,7 @@ For the four directly supported channel types _in-memory_, _kafka_, _pubsub_ and
 For custom channel types like e.g. the _activemq_ in this example, also a local **channel plugin** needs to be present.
 See <<custom-types>> for more details how channel type detection and channel plugins are proposed to work.
 
-===== Create a new channel
-
-**As an _Integrator_ I want to create a channel with a specified type**
+===== As an _Integrator_ I want to create a channel with a specified type
 
 .Example
 [source]
@@ -204,8 +200,7 @@ The client verifies which options are available depending whether its a well-kno
 
 For user though this difference doesn't matter so on the UI surface well-known and custom types are treated the same.
 
-===== List all channels
-**As an _Integrator_ and as a _Developer_ I want to list all channels**
+===== As an _Integrator_ and as a _Developer_ I want to list all channels
 
 .Example
 [source]
@@ -221,8 +216,7 @@ This will list all channels available along with some summary description like t
 
 If easily accessible some statistic informations about e.g. how many events has passed the channel would be nice or how many events have not been delivered yet.
 
-===== Show channel details
-**As an _Integrator_ and as a _Developer_ I want to see the details of a channel**
+===== As an _Integrator_ and as a _Developer_ I want to see the details of a channel
 
 .Example
 [source]
@@ -242,8 +236,7 @@ Triggers:
 Any detail information available, also from related objects shoudl be shown here.
 This command is also useful for _Developers_ as it helps in understanding the event topology.
 
-===== Remove a channel
-**As an _Integrator_ I want to remove a channel**
+===== As an _Integrator_ I want to remove a channel
 
 .Example
 [source]
@@ -268,9 +261,7 @@ In fact, from an implementation's point of view importers can be treated the sam
 And also from an UX point of view, the user interface for both can be nearly the same.
 But let's have a look.
 
-===== List all importer types
-
-**As an _Integrator_ I want to find out all importer types available so that I know what importers I can create. **
+===== As an _Integrator_ I want to find out all importer types available so that I know what importers I can create
 
 .Example
 [source]
@@ -290,9 +281,7 @@ As you can see, the situatuon is the same as for <<channels>>, so similar concep
 
 For full details for how to handle custom types and seamless integrate with the well-known types can be found in <<custom-types>>.
 
-===== Create an importer
-
-**As an _Integrator_ I want to create a new importer so that a _Developer_ can use it**
+===== As an _Integrator_ I want to create a new importer so that a _Developer_ can use it
 
 .Example
 [source]
@@ -308,9 +297,7 @@ All other options are specific to the importer's type, much like the type of a c
 
 An addition could be to provide here already a `--service` to create the connection to a service, but for the sake of conciseness creation of this connection should be left to `kn connection create` (or `kn connect` if we opt for a verb based flow for _Developer_ use cases).
 
-==== List importers
-
-**As an _Integrator_ or _Developer_ I want to list all existing importers**
+==== As an _Integrator_ or _Developer_ I want to list all existing importers
 
 .Example
 [source]
@@ -323,9 +310,7 @@ twitter-knative    twitter      twittersource.importers.k8spatterns.io
 all-seconds        cron         cronjobsources.sources.eventing.knative.dev
 ----
 
-==== Show importer details
-
-**As an _Integrator_ or _Developer_ I want to see the details of an importer**
+===== As an _Integrator_ or _Developer_ I want to see the details of an importer
 
 .Example
 [source]
@@ -349,9 +334,7 @@ Subscribers:
 As expected `kn importer show` will show all details for an importer.
 This is an human readable output, and specific to the importer's type.
 
-==== Delete importer
-
-**As an _Integrator_ I want to delete an importer**
+===== As an _Integrator_ I want to delete an importer
 
 .Example
 [source]
@@ -379,7 +362,7 @@ $ kn broker create --provisioner gcp-pupsub
 
 Creating a broker will create a resource of kind `Broker` with possible configurations fields offered as option, like `--provisioner` to specify the cluster channel provisioner for the channel template included  by the broker.
 
-==== As an _Integrator_ or _Developer_ I want to list all brokers in a namespace
+===== As an _Integrator_ or _Developer_ I want to list all brokers in a namespace
 
 .Example
 [source]
@@ -394,8 +377,7 @@ mybroker  Up          2
 
 As all list commands, it shoudl be possible to export the list of brokers in a machine readable format like `json` or `yaml` and it should be possible to filter on brokers to show (startdWith filtering).
 
-==== Show details of a broker
-**As an _Integrator_ or _Developer_ I want to see the details of a broker**
+===== As an _Integrator_ or _Developer_ I want to see the details of a broker
 
 .Example
 [source]
@@ -420,8 +402,7 @@ Importers:
 
 This command should reveal all details of the `Broker` resource itself, but also information about objects that are _referencing_ this broker, like the importers which feed events into this broker.
 
-==== Deleting a broker
-**As an _Integrator_ I want to delete a broker**
+===== As an _Integrator_ I want to delete a broker
 
 .Example
 [source]
@@ -449,9 +430,7 @@ There are several ways how a service can be registered for retrieving cloud even
 Depending on the mode, custom resources created looks quite differently as well as the preconditions.
 However, this should not matter for the UI as they all serve the same use case, but with different capabilities.
 
-===== Connect a service for receiving events
-
-**As a _Developer_ I want to connect a service to the eventing infrastructure.**
+===== As a _Developer_ I want to connect a service to the eventing infrastructure
 
 [source]
 ----
@@ -478,18 +457,14 @@ Depending on the arguments, the service is connected to the event system in diff
 
 A connection gets by default a randomly created name, with the service name as prefix. This name is stored as part of the metadata of the created entities (directly on the `Importer`, on the `Subscription` or on the `Trigger` )
 
-===== Update a connection to an event producer
-
-**As a _Developer_ I want to update a connection**
+===== As a _Developer_ I want to update a connection
 
 [source]
 ----
 $ kn connection update myconnection  --filter <new filter>
 ----
 
-===== Show details of a connection
-
-**As a _Developer_ I want to see the details of a connection**
+===== As a _Developer_ I want to see the details of a connection
 
 .Example
 [source]
@@ -499,9 +474,7 @@ $ kn connection show myconnection
 ....
 ----
 
-===== List all connections
-
-**As a _Developer_ I want to list all connections**
+===== As a _Developer_ I want to list all connections
 
 [source]
 ----
@@ -518,9 +491,7 @@ mysecondsrv-001  mysecondsrv                               mychannel
 $ kn connections list --service myservice
 ----
 
-===== Delete a connection
-
-**As a _Developer_ I want to delete a connection.**
+===== As a _Developer_ I want to delete a connection
 
 [source]
 ----
@@ -536,19 +507,19 @@ For creating a connection we could also piggy-back on the `service` command grou
 [[sequences]]
 ==== Sequences
 
-**As a _Developer_ I want to interactively build up a sequence.**
+===== As a _Developer_ I want to interactively build up a sequence
 
 * Interactive workflow by subsequent calls to an "append" or "insert" calls for adding transformer services.
 
-**As a _Developer_ I want to update a sequence.**
+===== As a _Developer_ I want to update a sequence
 
-**As a _Developer_ I want to list all sequences.**
+===== As a _Developer_ I want to list all sequences
 
-**As a _Developer_ I want to remove a sequence.**
+===== As a _Developer_ I want to remove a sequence
 
 (with usage check)
 
-**As a _Developer_ I want to see the details of a sequence**
+===== As a _Developer_ I want to see the details of a sequence
 List of all transformers contained in the sequence
 
 [[custom-types]]
