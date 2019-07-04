@@ -10,13 +10,12 @@ Dr. Roland Huß <rhuss@redhat.com>; Matthias Wessendorf <mwessendorf@redhat.com>
 
 == tl;dr
 
-This document is a suggestion about how `kn` can support Knative eventing,
-This support should be on the same level and with the same user experience as the existing support for Knative serving.
+This document is a proposal about how Knative eventing support can enter `kn`, the Knative client.
+This support should be on the same level and providing the same user experience as the existing support for Knative serving.
 
-It is important to note that we approach the problem space upside down.
-I.e. everything described here is based on the API of Knative eventing 0.7.0 and could be implemented immediately without requiring changes on Knative eventing.
+It is important to note that everything described here is based on the existing Knative eventing API 0.7 and could be implemented immediately without requiring any changes on Knative eventing.
 
-In this document we are trying to map the scenarios described in <<eventing-ux-issue, GitHub issue>> and <<eventing-ux-scenarios, scenario document>> to the roles we define here, which are slightly different.
+In this document we are trying to map the scenarios described in this <<eventing-ux-issue, GitHub issue>> and <<eventing-ux-scenarios, scenario document>> to the uses case defined later in <<use-cases>>.
 
 The three key themes of this document are
 
@@ -31,79 +30,63 @@ The three key themes of this document are
 | <<custom-types>>
 
 | 🎁
-| How to help _Developers_ with an **opinionated way** to connect their services to the event topology.
+| How to help _Developers_ with an **opinionated way** to connect their services to a given <<def-event-topology, event topology>>.
 | <<connections>>
 |===
-
-
-Before describing the use case and possible implementation, we have a look at the identified Eventing roles in <<roles>>.
-
-The following section then talks about the various <<abstraction, abstraction levels>> and what balance is targeted by this document.
-
-Particular use cases with sample kn usage are described in <<use-cases>>.
-
-As we will see in the use case section, there are subtle differences compared to Knative Serving as Knative Eventing as an _open_ API which can be extended with custom types (CRDs) whereas Knative Serving consists of a closed set of entities (`Service`, `Configuration`, `Revision`, `Route`) described by a fixed set of CRDs.
-A suggestion how to deal with the dynamic nature of <<importers>> and <<channels>> on the client side is proposed in <<custom-types>>, which proposes a specific plugin architecture for managing importers and channels.
-
-Finally, a set of <<examples>> for a managing importers like an (already contributed) <<example-kafka-source, KafkaSource>> and an (imaginary) <<twitter-source, TwitterSource>> tries to illustrate they implementation suggestion for dynamic types.
-
-[[summary]]
-== Summary
-
 
 [[roles]]
 == Roles
 
-For Knative eventing, there are typically three roles for which use cases can be classified:
+For Knative eventing, there are three roles for which use cases can be classified:
 
-* **Administrators** install Knative on a target platform like Kubernetes. Administrators are responsible for registering the Knative Eventing core CRDs and installing operators for watching those. _Administrators_ are also responsible for installing any importer (aka source) and channel **types** (CRD and controllers) so that _Integrators_ can create integration and channel **instances** with a specific configuration. The can be more than one instance for each type (e.g. different Kafka importers for different Kafka topics)
+* **Administrators** install Knative on a target platform like Kubernetes. _Administrators_ are responsible for registering the Knative Eventing core CRDs and installing operators for watching those. _Administrators_ are also responsible for installing any importer (aka source) and channel **types** (CRD and controllers) so that _Integrators_ can create integration and channel **instances** with a specific configuration. There can be more than one instance for each type (e.g. different Cron importers firing on different schedules)
 
-* **Integrators** are responsible for managing importer and channel instances out of the list of installed type. They are also responsible for creating brokers, which reference specific channels.
+* **Integrators** are responsible for managing importer and channel instances out of the list of available types. They are setting up the <<def-event-topology, event topology>> also responsible for creating brokers, which reference specific channels.
 
 * **Developers** are using the importers, channels and brokers by linking them together, potentially also with Knative services created by the developer.
 
 Of course, a single person can fulfil multiple roles.
 
-The scope of this document is suggestion a concrete kn support for the roles of an _Integrator_ and _Developer_. _Administrators_ _are out of scope for the Knative client as the install Knative in a platform-specific way.
+`kn` is supposed to provide support for use case for the roles of an _Integrator_ and _Developer_. _Administrators_ _are out of scope for the Knative client as `kn` is agnostic of the way how Knative is installed.
 
-* For _Integrators_ the full flexibility should be available so that the eventing topology can be setup flexibly. The UI for _Integrator_ use cases is a thin wrapper over the underlying custom resources (<<channels>>, <<importers>>, <<broker>>). The benefit here is not only simplified resource management but also how `kn` can deal with custom implementations of importers and channels. For this, a particular plugin architecture is suggested. See <<custom-types>> for more information about this extension hook.
+* For _Integrators_ the full eventing feature set should be available so that the <<def-event-topology, event topology>> can be setup flexibly. The commands for the _Integrator_ use cases is a thin wrapper over the underlying custom resources (<<channels>>, <<importers>> and <<brokers>>). The benefit of this approach is not only a simplified resource management but also how `kn` can deal with custom implementations of importers and channels. For this, a particular plugin architecture is proposed in <<custom-types>>.
 
-* For _Developers_ a more opinionated approach is taken, shielding the developer from direct resource management. There are currently three different ways how a service can be registered for events: Direct linkage to an importer, subscription to a channel, or subscription to a broker with a trigger. All of these different ways are to be shielded behind a common UX. In <<connections>> a suggestion is made how this can be achieved with a noun "connection" that fits into the general '_<noun> <verb>_' scheme of `kn` and is not directly connected to any backing CR. For <<sequences>> a workflow is suggested to build up such a sequence of connected transforming services.
+* For _Developers_ a more opinionated approach is taken, shielding the developer from direct custom resource management. There are currently three different ways how a service can be registered for events: Direct linkage to an importer, subscription to a channel, or subscription to a broker with a trigger. All of these different ways are to be shielded behind a common UX. In <<connections>> a suggestion is made how this can be achieved with a "connection" command. For <<sequences>> a workflow is suggested to build up such a sequence of connected transforming services.
 
-The roles defined in the scenarios of <<eventing-ux-scenarios, scenario document>> can be mapped to the roles here like:
+The roles defined in the scenarios of the <<eventing-ux-scenarios, scenario document>> can be mapped to the roles like:
 
-FaaS Scenario:: The developer role in the FaaS scenario is also the _Developer_ role in this document. It's a role which merely wants to use a given infrastructure and event topology by connecting her services to event producers. See <<connections>> how the main developer use case is covered
+FaaS Scenario:: The "developer" role in the FaaS scenario is also the _Developer_ role in this document. It's a role which merely wants to use a given infrastructure and event topology by connecting her services to event producers. See <<connections>> how the main developer use case is covered.
 
-Event-Driven Scenario:: The "event-producer developer" role maps to the _Integrator_ as it is the event-producer is responsible for managing importers and possibly brokers. See <<importers>>, <<channels>> and <<brokers>> for this roles' use cases. The "even-consumer developer" is the _Developer_ role here and is similar to the "developer" in the FaaS scenario as it's about connecting a service with an event producer (trigger, broker or directly via a channel subscription). <<connections>> (and also <<sequences>>) holds the use cases for this scenario.
+Event-Driven Scenario:: The "event-producer developer" role maps to the _Integrator_ as it's the event-producer who is responsible for managing importers and possibly brokers. See <<importers>>, <<channels>> and <<brokers>> for this roles' use cases. The "even-consumer developer" is a _Developer_  and is similar to the "developer" in the FaaS scenario as it's about connecting a service with an event producer (trigger, broker or directly via a channel subscription). <<connections>> (and also <<sequences>>) hold the use cases for this scenario.
 
-Black-box integration scenario:: The "central platform team" is represented by the _Integrator_ role for the provisioning part of the black-box software when it is about creating the importer resources. A "central platform team" very likely also has to perform tasks as an _Administrator_ to install the software's backend parts. Then, the "developer" in this scenario can use the importers installed by the _Integrator_ by managing <<connections>>).
+Black-box integration scenario:: The "central platform team" is represented by the _Integrator_ role for the provisioning part of the black-box software when it is about creating the importer resources. A "central platform team" very likely also has to perform tasks as an _Administrator_ to install the software's backend parts. Then, the "developer" in this scenario can use the importers installed by the _Integrator_ by managing <<connections>>). For this black-box scenario adding <<custom-types>> is crucial.
 
 [[abstraction]]
 == Level of Abstraction
 
-Every feature of Knative Eventing and Serving can be used with a general purpose CLI tool like `kubectl`.
-However, it is the goal of the specialized `kn` CLI tool to make frequent use cases easy to perform.
-Therefore `kn` takes a somewhat opinionated approach, and restricts individual variations and combinations (like creating `Routes` directly with kn in favour of doing everything via the `Service`).
+Every feature of Knative eventing and serving can be managed with a general purpose CLI tool like `kubectl`.
+However, it is the goal of `kn` as specialized CLI tool to make frequent use cases easy to perform.
+Therefore `kn` takes a somewhat opinionated approach, and restricts individual variations and combinations. E.g. there is no support for creating `Routes` directly with `kn` in favour of doing everything over the `Service`.
 
 The question is how much abstracted (or "opinionated") the core Knative concepts should be.
 This is not a discrete choice but a spectrum with exposing Knative CRs directly on the one side and using a completely new vocabulary specific to `kn` on the other side.
 
-Let's have a quick look on both ends of the spectrum:
+Let's have a look on both ends of the spectrum:
 
 * [[abstraction-crs]] **Direct resource management** only provides a thin layer of creating a CR directly. _Integrator_ use cases tend toward this end for managing the event topology with importers, channels or brokers.
 * [[abstraction-use-case]] **Use-case backed interface** encapsulates the management of Knative custom resources behind an opinionated user interface. Examples for this higher-order abstractions are:
 ** `kn rollout --strategy blue-green` for creating
 ** `kn rollout --strategy canary --canary-target=2 --image=myservice:2.0` for creating a new revision with for a new version with a target of %2 per cent for the canary.
 ** `kn connect --source github://secretname@github.com/user/helloworld --select ... --destination service://myservice` for connecting an importer to a broker, creating a trigger with `--select` which references a Knative service `myservice` as a sink.
-+
+++
 _Developer_ use cases are opinionated and make the underlying custom resources more or less opaque.
 
-An interesting exception of this mapping here is the `kn service` command, which serves a _Developer_ task. However, since a Knative `Service` is already a developer-friendly abstraction and an umbrella resource for managing other resources (configuration, revisions, routes), it already has the proper abstraction to be used directly via `kn`. There is no similar umbrella object for Knative eventing. Although this is a _Developer_ task having this slight abstraction over managing a Service directly via `kubectl` has benefits, because it provides much value as it encapsulates domain knowledge how to create the underlying CR. A good example here is the options `--concurrency-limit` and `--concurrency-target` to `kn service create` which are kind of hard and soft limits for when to trigger an autoscaling event, but on the CR the end up in different places (direct CR field vs provided as annotation)
+An interesting exception of this mapping here is the `kn service` command, which implements a _Developer_ user story. However, since a Knative `Service` is already a developer-friendly abstraction and an umbrella resource for managing other resources (configuration, revisions, routes), it already has the proper abstraction to be used directly by `kn`. There is no similar umbrella object for Knative eventing. Although this is a _Developer_ task having this slight abstraction over managing a Service directly via `kubectl` has benefits, because it provides much value as it encapsulates domain knowledge how to create the underlying custom resource. A good example here is the options `--concurrency-limit` and `--concurrency-target` to `kn service create` which are kind of hard and soft limits for when to trigger an autoscaling event, but on the CR they end up in different places (direct custom resource field vs metadata annotation)
 
 [[use-cases]]
 == Use Cases
 
-All the use case in this section are crafted with this `kn` UI scheme in mind:
+All the use cases in this section are crafted with this `kn` UI scheme in mind:
 
 kn <noun> create <name>:: Create a _<noun>_ identified by _<name>_
 kn <noun> update <name>:: Update a _<noun>_ identified by _<name>_
@@ -111,7 +94,7 @@ kn <noun> show <name>:: Show details of the _<noun>_ instance with name _<name>_
 kn <noun> delete <name>:: Delete an instance of _<noun>_  with _<name>_
 kn <noun> list <prefix>:: List entities. If _<name-prefix>_ is given, filter the entity names on this prefix.
 
-_<noun>_ can be either directly reflecting the underlying Knative custom resource (typical for _Integrator_ based use cases) or more abstract, developer-oriented, concepts like the proposed `connection` which describes any connection from a `service` to the event backend. See <<connections>> for details.
+_<noun>_ can be either directly reflecting the underlying Knative custom resource (typical for _Integrator_ based use cases) or more abstract, developer-oriented, concepts like the proposed `connection` which describes any connection from a `Service` to the event backend. See <<connections>> for details.
 
 Also, when there is a (hierarchical) relationship between _<nouns>_ (like between `service` and `revision`) particular option might filter on the high-level _<noun>_ (like in `kn revision list --service myservice`).
 
@@ -129,20 +112,18 @@ kn split revision1:10% revision2:90%
 
 so, in the general form `kn <verb>` where verb concretely refers a developer use case which is not mapped 1:1 to entities (so more of category _Use-case backed interface_)
 
-NOTE: In the example above `route` is used as a verb, which clashes with the Knative serving custom resource `Route`.
-
-Moreover, of course, a mixed format could be imaginable as well. E.g. creating and removing connections with `kn connect` and `kn disconnect`, but listing, updating and showing connections with `kn connection list`, `kn connection update` and `kn connection show`
+Moreover, a mixed format could be possible as well. E.g. creating and removing connections with `kn connect` and `kn disconnect`, but listing, updating and showing connections with `kn connection list`, `kn connection update` and `kn connection show`.
 
 
 [[use-case-integrator]]
 === Integrator use cases
 
 The following use cases can be categorized by this epic use case below.
-So they are all about setting up the topology which includes brokers, channels and the importers that then can be used by a _Developer_.
+So they are all about setting up the event topology which includes brokers, channels and the importers that then can be used by a _Developer_.
 
 **As an _Integrator_ I want to manage importers (sources) and the infrastructure elements like brokers and channels to set up the eventing topology.**
 
-The following use cases are a breakdown, how the _eventing topology_ can be managed by directly managing the underlying Knative eventing resources.
+The following use cases are a breakdown, how the event topology can be managed by directly managing the underlying Knative eventing resources.
 
 [[channels]]
 ==== Channels
@@ -151,9 +132,9 @@ Channels are used for connecting importers/source to services and provide the ba
 They can be created implicitly via brokers, but they can also be created directly by _Integrators_ so a _Developer_ can subscribe a service to it.
 
 A channel has a specific type which determines how events are persisted and distributed.
-There is a set of predefined types but not all available out of the box on every installation of Knative eventing.
+There is a set of predefined types but not all are available out of the box on every installation of Knative eventing.
 The only channel type that is always available is an `in-memory` type.
-Other types, like `kafka` for a Kafka, backed event transport, needs extra installation efforts by an _Administrator_.
+Other types, like `kafka` for a Kafka backed event transport, need extra installation efforts by an _Administrator_.
 Also _Administrators_ can introduce new custom channels which are not known in advance by `kn`.
 To use these custom channels, a plugin architecture is proposed in <<custom-types>>.
 
@@ -172,13 +153,14 @@ TYPE                DESCRIPTION
 in-memory           Non-persistent in memory channel (default)
 kafka               Kafka backed channel
 pubsub              Google Cloud pub-sub
-natss               NATSS
 activemq            ActiveMQ backed channel
 ----
 
 Only those types which can be used for the given Knative installation must show up here.
-For the four directly supported channel types _in-memory_, _kafka_, _pubsub_ and _natts_ the corresponding cluster features needs to be enabled by the _Administrator_.
-For custom channel types like, e.g. the _activemq_ in this example, also a local **channel plugin** needs to be present.
+For the four directly supported channel types _in-memory_, _kafka_, _pubsub_ and _natss_ the corresponding cluster features needs to be enabled by the _Administrator_.
+If a well-know type is not installed on the cluster, that type won't show up in the list of available types.
+In our example this is the case for the `natss` type, because no support has installed in the cluster for it.
+For custom channel types like, e.g. the _activemq_ type in this example, also a local **channel plugin** needs to be present.
 See <<custom-types>> for more details on how channel type detection and channel plugins are supposed to work.
 
 ===== As an _Integrator_ I want to create a channel with a specified type
@@ -212,7 +194,8 @@ myotherchannel   in-memory  default 4           Up
 -----
 This will list all channels available along with some summary description like the channel type, whether it's created on behalf of a broker, the status, the number of subscriptions attached to this channel
 
-If easily accessible some statistic information about, e.g. how many events have passed the channel would be helpful or how many events have not been delivered yet.
+If possible some statistic informations would be nice to have, too.
+E.g. one could show how many events have passed the channel or how many events have not been delivered yet.
 
 ===== As an _Integrator_ and as a _Developer_ I want to see the details of a channel
 
@@ -271,8 +254,7 @@ cron            Periodic event from a cron importer
 twitter         Import tweets by user or search
 ----
 
-As there can be well-known importers (e.g. kafka) but also custom importers (twitter)
-As you can see, the situation is the same as for <<channels>>, so similar concept apply here as well.
+As for <<channels>> there can be well-known importers (e.g. kafka) but also custom importers (twitter).
 
 For full details for how to handle custom types and seamlessly integrate with the well-known types can be found in <<custom-types>>.
 
@@ -289,9 +271,9 @@ The value given must be one out of the list as given by `kn importer types`.
 
 All other options are specific to the importer's type, much like the type of a channel.
 
-An addition could be to provide here already a `--service` to create the connection to a service, but for the sake of conciseness creation of this connection should be left to `kn connection create` (or `kn connect` if we opt for a verb based flow for _Developer_ use cases).
+An addition could be to provide here already a `--service` to create the connection to a service, but for the sake of conciseness creation of this connection should be left to `kn connection create` (or `kn connect` if we opt for a verb based flow for _Developer_ use cases as described in detail in <<use-cases>>,
 
-==== As an _Integrator_ or _Developer_ I want to list all existing importers
+===== As an _Integrator_ or _Developer_ I want to list all existing importers
 
 [source]
 ----
@@ -325,6 +307,7 @@ Subscribers:
 
 As expected `kn importer show` will show all the details for an importer.
 This is a human-readable output, and specific to the importer's type.
+For custom types, this output comes directly from kn importer plugin (`kn-importer-twitter` in this case).
 
 ===== As an _Integrator_ I want to delete an importer
 
@@ -398,15 +381,15 @@ This command should reveal all details of the `Broker` resource itself, but also
 $ kn broker delete mybroker
 ----
 
-Before deleting a broker, kn should check if the broker is still in use.
+Before deleting a broker, `kn` should check if the broker is still in use.
 E.g. when there are subscriptions to this broker via triggers, then kn should refuse to delete the broker.
-However, when an option `--force` is given, then the broker and all triggers referencing this broker should be deleted.
+However, when an option `--force` is given, then the broker **and** all triggers referencing this broker should be deleted.
 
 [[use-case-developer]]
 === Developer use cases
 
 The developer is the user of the eventing topology.
-She creates services (presumably Knative serving services) and connects them importers either directly, via a channel or a broker.
+She creates services (presumably Knative serving services) and connects them to importers either directly, via a channel or a broker.
 
 **As a _Developer_ I want to use the eventing topology to receive events for which I can register my services with filtering and chaining.**
 
@@ -433,16 +416,29 @@ $ kn service connect myservice --connection myconnection --target importer:k8sap
 # Connect a service to a broker with a trigger and the given filter
 $ kn service connect myservice --broker default --filter <filter-expression>
 
+# Alternative verb based syntax (see discussion in "Use Cases"):
+$ kn connect --service myservice --target importer:ks8apievents
+
 Connection myservice-001 has been created.
 ----
 
-Depending on the arguments, the service is connected to the event system in different ways:
+As seen above, depending on which style to chose, the are three possibilities for the create command:
+
+* Noun-based on "connection": `kn connection create <connection-name> --service <service-name> --target ...`
+* Piggy-back on "service": `kn service connect <service-name> --connection-name <connection-name> ---target ...`
+* Verb based: `kn connect --service <service-name> --connection-name <connection-name> --target`
+
+It is worth noting, that the _piggy-back on service_ variation above only work smoothly for create a connection (and maybe removing with "disconnect"). All other CRUD operations (show, list, update) should go to the stand `kn connection <verb>` mode, as otherwise this would lead to ugly command names like `kn service show-connection` or `kn service list-connections`).
+
+A possible benefit of _piggy-back on service_ and _verb based_ would be that the connection name could be auto generated.
+For the _noun-based on connection_ mode this is not possible as it would break the general scheme.
+However, whether auto generation of names is desirable, is another question.
+
+Regardless what syntax to chose, depending on the `--target` argument, the service is connected to the event system in different ways:
 
 * Directly to an Importer (`--importer <importer-name>` or `--target importer:<importer-name>`)
 * With a subscription to a channel (`--channel <channel-name>` or `--target channel:<channel-name>`)
 * With a trigger connected to a broker (`--broker <broker-name>` or `--target broker:<broker-name>`)
-
-A connection gets by default a randomly created name, with the service name as the prefix. This name is stored as part of the metadata of the created entities (directly on the `Importer`, on the `Subscription` or the `Trigger` )
 
 ===== As a _Developer_ I want to update a connection
 
@@ -486,13 +482,13 @@ $ kn connections list --service myservice
 $ kn service delete-connection myconnection
 ----
 
-[NOTE]
-====
-For creating a connection we could also piggy-back on the `service` command group as an (additional ?) alternative, leading to commands like `kn service connect myservice1 --broker mybroker`. The same might apply for the other subscription use cases, too. The connection's name would be auto-generated from service name or provided via --name
-====
-
 [[sequences]]
 ==== Sequences
+
+[NOTE]
+====
+TODO: This section needs to be fleshed out with an opinionated, multi-step flow for building up a sequence.
+====
 
 ===== As a _Developer_ I want to build up a sequence interactively
 
@@ -512,11 +508,16 @@ List of all transformers contained in the sequence
 [[custom-types]]
 == Custom types
 
-// This should be done by querying for CRDs with a category “channel”
-//As querying for CRDs is a K8s concept, it would be helpful if getting the list of available channel types from the Knative eventing API
-//Beside checking available CRDs also check whether a corresponding channel plugin is available locally along with a download URL when it is not.
+There is a subtle difference between Knative serving and Knative eventing.
+Knative serving operates on a closed set of entities (`Service`, `Configuration`, `Revision` and  `Route`) that is described by a fixed set of CRDs.
 
-Knative Eventing can be easily extended with a new channel and importer types by introducing CRDs and install controllers which reconcile on instances of these CRDs.
+Knative eventing on the other hand is an _open_ API which can be extended with custom types for channels and importers by registering CRDs and installing controllers which reconcile on those custom resources.
+
+[IMPORTANT]
+=====
+In the following we will stick to `Channel` resources.
+All what is said here can be mapped 1:1 to `Importers`, too, as both share the same characteristics with respect to custom types.
+=====
 
 The kn client can easily query for all CRDs and match on all CRDs with a category of "knative" and "channel":
 
@@ -536,24 +537,23 @@ spec:
 
 The list of returned CRDs are the channels that can be used for creating new channels, whereby it is assumed that a corresponding controller has been installed on the server side, too.
 
-However, since each channel type supports different configuration options, a client-side mechanism allows a user to provide this configuration as command line options/flags.
-An alternative would be to evaluate the CRDs openAPI schema to provide a general way to query for the options. However, such a generic mechanism never can provide the same user experience as custom-tailored client-side extensions.
+However, since each channel type supports different configuration options, a client-side mechanism must allow a user to provide this configuration as command line options/flags.
 
 For well-known types (like `InMemoryChannel`) the channel specific features are well known and can be directly supported by kn. For custom provided types, a plugin mechanism is required.
 
-Such a channel plugin is an external binary placed in a well location (e.g. `~/.kn/plugins/channels/` or `~/.kn/plugins/importers/`)
+Such a channel plugin is an external binary placed in a well-known location (e.g. `~/.kn/plugins/channels/` or `~/.kn/plugins/importers/`)
 
-The name of the binary reflects the type that should be used in `kn channel create --type <channel-type>`
+The name of the binary reflects the type that should be used in `kn channel create --type <channel-type>` (e.g. `kn-channel-activemq` for a channel plugin managing channels of type "activemq")
 
 The following commands given as arguments have to be supported by such a custom type plugin executable:
 
 .Plugin contract for importer and channel plugins
-[cols="1,7"]
+[cols="1,5"]
 |===
 | Command | Description
 
 | `manifest`
-| Print out the CRD coordinates which connects this plugin to the CRD it is responsible for. This Can be a JSON structure with the kind, group and API version and a textual description of the channel type. Also, it should contain the list of possible options along with their descriptions so that a help message can be constructed.
+| Print out the CRD coordinates which connects this plugin to the CRD for which it is responsible. This can be a JSON structure with the kind, group and API version and a textual description of the channel type. Also, it should contain the list of possible options along with their descriptions so that a help message can be constructed and a validation can be happen on these options.
 
 | `create`
 | Create a resource of this kind. The provided command line arguments are handed through directly to the plugin. The first argument will be the name of the resource to create. The rest are options specific for this importer or channel.
@@ -565,15 +565,30 @@ The following commands given as arguments have to be supported by such a custom 
 | Print out a human-readable description for an existing channel or importer.
 |===
 
-If one channel is either the CRD is missing or the client side plugin, then this channel type is disabled.
+If for one channel is either the CRD or the client side plugin is missing, then this channel type is disabled and does not show up on a `kn channel list`.
 
 For the user, it should not matter whether the channel management is hardcoded in the kn binary or provided by a channel plugin. I.e. when listing all available channel types both types (internally provided, via plugin) are presented on the same level.
 
-The same mechanism should be implemented for importer plugins for handling custom importers, which are represented by CRDs in the same way as channels.
+As already mentiones, the same mechanism should be implemented for importer plugins for handling custom importers, which are represented by CRDs in the same way as channels, with the difference that another naming convention is in effect (`kn-importer-twitter`) and those plugins might be stored in a different directory (`~/.kn/importers`).
 
 [NOTE]
 =====
 The type discovery by querying matching CRDs requires that Knative eventing exposes the API operation for list CRDs also in its interface. If this is not possible, an alternative would be to make a pure client discovery by checking which plugins are installed. The combination of this list plus the list of well-known types is a list of supported types of this client. A client, however, would need then check whether the corresponding CRDs are registered on the server side, which can be done by a direct 'list' for such resources and checking for errors.
+=====
+
+[NOTE]
+=====
+An alternative to plugins would be to evaluate the CRDs openAPI schema and provide a generic way to
+deal with these resources. This is a difficult task, but could be achieved, when some requirements on the CRDs registered could be imposed:
+
+* There needs to be a mapping of possible CLI options (flat) to fields in the CR spec section (deep). This mapping could be e.g. attached as annotations to the CRD and provide a path like mapping to depict spec fields, which are mapped to annotation key which in turn are used as CLI options.
+* Also mandatory option would need to be marked.
+* It must be possible to create such resource in a generic fashion.
+* For the detailed output either a generic layout is used for all such custom resources, or additional meta-data for printing out fields need to be added (similar to the mapping of options to CR fields).
+
+The advantage of course is that there is no need for client side plugins.
+
+For the sake of simplicity and flexibility, the plugin approach looks to be preferable (if the automatic distribution of channel and importer plugin can be easily achieved).
 =====
 
 [[examples]]
@@ -596,6 +611,8 @@ NOTE:: To be done
 
 == Glossar
 
-Event topology:: The concrete setup with importers, channels and brokers as _Developers can use it_
-custom type:: Type of channels and importers which are outside the set of well-known types
-channel plugin:: A client-side plugin for a channel with a custom type
+[[def-event-topology]]
+Event topology:: The concrete setup of Knative eventing with importers, channels and brokers managed by _Integrators_ and used by _Developers_
+Custom type:: Type of channels and importers which are outside the set of well-known types
+Channel plugin:: A client-side plugin for a channel with a custom type
+Importer plugin:: A client-side plugin for an importer with a custom type
