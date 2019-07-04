@@ -368,8 +368,7 @@ In this case all subscriptions should be removed as well.
 [[brokers]]
 ==== Brokers
 
-===== Create a broker
-**As an _Integrator_ I want to create a broker in a namespace so that a _Developer_ can use it**
+===== As an _Integrator_ I want to create a broker in a namespace so that a _Developer_ can use it
 
 .Example
 [source]
@@ -380,8 +379,7 @@ $ kn broker create --provisioner gcp-pupsub
 
 Creating a broker will create a resource of kind `Broker` with possible configurations fields offered as option, like `--provisioner` to specify the cluster channel provisioner for the channel template included  by the broker.
 
-===== List all brokers
-**As an _Integrator_ or _Developer_ I want to list all brokers in a namespace**
+==== As an _Integrator_ or _Developer_ I want to list all brokers in a namespace
 
 .Example
 [source]
