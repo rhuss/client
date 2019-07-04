@@ -1,10 +1,12 @@
 
 = Knative Eventing client support
-Roland Huß <rhuss@redhat.com>; Matthias Wessendorf <mwessendorf@redhat.com>
-v0.1.0, 2019-07-04
+Dr. Roland Huß <rhuss@redhat.com>; Matthias Wessendorf <mwessendorf@redhat.com>
+:revnumber: v0.1.0
+:revdate: {localdate}
+:toc: macro
+:toclevels: 4
+:doctype: book
 :icons: font
-:toc:
-
 
 == tl;dr
 
@@ -161,7 +163,6 @@ Let's have a look at this use case first.
 
 ===== As an _Integrator_ I want to find all channel types which are available by a given Knative installation
 
-.Example
 [source]
 ----
 # List all channel types which are installed on the cluster and for
@@ -183,7 +184,6 @@ See <<custom-types>> for more details how channel type detection and channel plu
 
 ===== As an _Integrator_ I want to create a channel with a specified type
 
-.Example
 [source]
 ----
 $ kn channel create mychannel --type kafka --num-partitions=4 --replication-factor=3
@@ -202,7 +202,6 @@ For user though this difference doesn't matter so on the UI surface well-known a
 
 ===== As an _Integrator_ and as a _Developer_ I want to list all channels
 
-.Example
 [source]
 -----
 # List all channels for the current namespace
@@ -218,7 +217,6 @@ If easily accessible some statistic informations about e.g. how many events has 
 
 ===== As an _Integrator_ and as a _Developer_ I want to see the details of a channel
 
-.Example
 [source]
 ----
 # Show specific details for a channel
@@ -238,7 +236,6 @@ This command is also useful for _Developers_ as it helps in understanding the ev
 
 ===== As an _Integrator_ I want to remove a channel
 
-.Example
 [source]
 ----
 # Remove a channel but check whether its in use
@@ -263,7 +260,6 @@ But let's have a look.
 
 ===== As an _Integrator_ I want to find out all importer types available so that I know what importers I can create
 
-.Example
 [source]
 ----
 # List all well-know as well as custom importers
@@ -283,7 +279,6 @@ For full details for how to handle custom types and seamless integrate with the 
 
 ===== As an _Integrator_ I want to create a new importer so that a _Developer_ can use it
 
-.Example
 [source]
 ----
 # Create an importer which picks up Tweets mentioning "knative"
@@ -299,7 +294,6 @@ An addition could be to provide here already a `--service` to create the connect
 
 ==== As an _Integrator_ or _Developer_ I want to list all existing importers
 
-.Example
 [source]
 ----
 # List all created importers
@@ -312,7 +306,6 @@ all-seconds        cron         cronjobsources.sources.eventing.knative.dev
 
 ===== As an _Integrator_ or _Developer_ I want to see the details of an importer
 
-.Example
 [source]
 ----
 # Show details for a specific importer
@@ -336,7 +329,6 @@ This is an human readable output, and specific to the importer's type.
 
 ===== As an _Integrator_ I want to delete an importer
 
-.Example
 [source]
 ----
 # Delete an importer
@@ -353,7 +345,6 @@ In this case all subscriptions should be removed as well.
 
 ===== As an _Integrator_ I want to create a broker in a namespace so that a _Developer_ can use it
 
-.Example
 [source]
 ----
 # Create a broker
@@ -364,7 +355,6 @@ Creating a broker will create a resource of kind `Broker` with possible configur
 
 ===== As an _Integrator_ or _Developer_ I want to list all brokers in a namespace
 
-.Example
 [source]
 ----
 # Return an overview of all brokers installed
@@ -379,7 +369,6 @@ As all list commands, it shoudl be possible to export the list of brokers in a m
 
 ===== As an _Integrator_ or _Developer_ I want to see the details of a broker
 
-.Example
 [source]
 ----
 # Show the details of broker `mybroker`
@@ -404,7 +393,6 @@ This command should reveal all details of the `Broker` resource itself, but also
 
 ===== As an _Integrator_ I want to delete a broker
 
-.Example
 [source]
 ----
 # Delete broker 'mybroker'
