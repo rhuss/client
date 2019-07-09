@@ -118,20 +118,9 @@ func testServiceDescribe(t *testing.T, k kn, serviceName string) {
 		t.Fatalf(fmt.Sprintf("Error executing 'kn service describe' command. Error: %s", err.Error()))
 	}
 
-	expectedOutputHeader := `apiVersion: serving.knative.dev/v1alpha1
-kind: Service
-metadata:`
-	if !strings.Contains(out, expectedOutputHeader) {
-		t.Fatalf(fmt.Sprintf("Expected output incorrect, expecting to include:\n%s\n Instead found:\n%s\n", expectedOutputHeader, out))
-	}
-
-	expectedOutput := `generation: 1
-  name: %s
-  namespace: %s`
-	expectedOutput = fmt.Sprintf(expectedOutput, serviceName, k.namespace)
-	if !strings.Contains(out, expectedOutput) {
-		t.Fatalf(fmt.Sprintf("Expected output incorrect, expecting to include:\n%s\n Instead found:\n%s\n", expectedOutput, out))
-	}
+	assert.Assert(t, util.ContainsAll(out, serviceName, k.namespace, KnDefaultTestImage))
+	assert.Assert(t, util.ContainsAll(out, "Conditions", "ConfigurationsReady", "Ready", "RoutesReady"))
+	assert.Assert(t, util.ContainsAll(out, "Name", "Namespace", "URL", "Address", "Annotations", "Age", "Revisions"))
 }
 
 func testServiceUpdate(t *testing.T, k kn, serviceName string, args []string) {
