@@ -80,7 +80,7 @@ type revisionDesc struct {
 // Return a new command for describing a service.
 func NewServiceDescribeCommand(p *commands.KnParams) *cobra.Command {
 	command := &cobra.Command{
-		Use:   "describe NAME",
+		Use:   "show NAME",
 		Short: "Show details for a given service",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {

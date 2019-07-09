@@ -113,7 +113,7 @@ func testRevisionListForService(t *testing.T, k kn, serviceName string) {
 }
 
 func testServiceDescribe(t *testing.T, k kn, serviceName string) {
-	out, err := k.RunWithOpts([]string{"service", "describe", serviceName}, runOpts{NoNamespace: false})
+	out, err := k.RunWithOpts([]string{"service", "show", serviceName}, runOpts{NoNamespace: false})
 	if err != nil {
 		t.Fatalf(fmt.Sprintf("Error executing 'kn service describe' command. Error: %s", err.Error()))
 	}
