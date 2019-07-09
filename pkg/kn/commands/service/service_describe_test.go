@@ -84,7 +84,7 @@ func TestServiceDescribeDefaultOutput(t *testing.T) {
 
 	assertMatches(t, output, "Name:\\s+foo")
 	assertMatches(t, output, "Namespace:\\s+default")
-	assertMatches(t, output, "Address:\\s+foo.default.svc.cluster.local")
+	assertMatches(t, output, "Address:\\s+http://foo.default.svc.cluster.local")
 	assertMatches(t, output, "URL:\\s+foo.default.example.com")
 	assertMatches(t, output, "Age:")
 }

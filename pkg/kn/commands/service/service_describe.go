@@ -42,14 +42,9 @@ import (
 // Command for printing out a description of a service, meant to be consumed by humans
 // It will show information about the serivce itself, but also a summary
 // about the associated revisions.
-// "kn service describe" knows three modes, which can be combined:
-//
-// `--all`    : Print more information. By default only are shorter summary is shown
-// `--color`  : Use a colorful output (but only when on a tty)
-// `--hipster`: Experimental output mode for a very compact representation using emojis
 
 // Whether to print extended information
-var printAll bool
+var printDetails bool
 
 // Max length When to truncate long strings (when not "all" mode switched on)
 var truncateAt = 100
@@ -100,47 +95,33 @@ func NewServiceDescribeCommand(p *commands.KnParams) *cobra.Command {
 			if err != nil {
 				return err
 			}
+
 			client, err := p.NewClient(namespace)
 			if err != nil {
 				return err
 			}
 
-			printAll, err = cmd.Flags().GetBool("all")
-			if err != nil {
-				return err
-			}
-
 			useColor, err := cmd.Flags().GetBool("color")
+			color.NoColor = !useColor
+
+			printDetails, err = cmd.Flags().GetBool("details")
 			if err != nil {
 				return err
 			}
-			// Set color option globally
-			color.NoColor = !useColor
 
 			service, err := client.GetService(serviceName)
 			if err != nil {
 				return err
 			}
-			// Additional revision related information
-			revisionDescs, err := getRevisionDescriptions(client, service, printAll)
+			revisionDescs, err := getRevisionDescriptions(client, service, printDetails)
 
-			hipsterMode, err := cmd.Flags().GetBool("hipster")
-			if err != nil {
-				return err
-			}
-			if hipsterMode {
-				// Compact mode is completely separated as it used different way
-				// for formatting
-				return describeCompact(cmd.OutOrStdout(), service, revisionDescs)
-			}
 			return describe(cmd.OutOrStdout(), service, revisionDescs)
 		},
 	}
 	flags := command.Flags()
 	commands.AddNamespaceFlags(flags, false)
-	flags.BoolP("all", "a", false, "don't truncate long information")
-	flags.BoolP("color", "c", false, "use colorful output")
-	flags.Bool("hipster", false, "🤓")
+	flags.BoolP("details", "d", false, "Show all details.")
+	flags.BoolP("color", "c", false, "Create colorful output.")
 	return command
 }
 
@@ -177,7 +158,8 @@ func writeService(dw printers.PrefixWriter, service *v1alpha1.Service) {
 	dw.WriteColsLn(printers.LEVEL_0, l("Namespace"), service.Namespace)
 	dw.WriteColsLn(printers.LEVEL_0, l("URL"), wc(extractURL(service), color.FgGreen))
 	if service.Status.Address != nil {
-		dw.WriteColsLn(printers.LEVEL_0, l("Address"), service.Status.Address.Hostname)
+		url := service.Status.Address.GetURL()
+		dw.WriteColsLn(printers.LEVEL_0, l("Address"), url.String())
 	}
 	writeMapDesc(dw, printers.LEVEL_0, service.Labels, l("Labels"), "")
 	writeMapDesc(dw, printers.LEVEL_0, service.Annotations, l("Annotations"), "")
@@ -209,7 +191,7 @@ func writeConditions(dw printers.PrefixWriter, service *v1alpha1.Service) {
 	for _, condition := range service.Status.Conditions {
 		ok := formatStatus(condition.Status)
 		reason := condition.Reason
-		if printAll && reason != "" {
+		if printDetails && reason != "" {
 			reason = fmt.Sprintf("%s (%s)", reason, condition.Message)
 		}
 		dw.Write(printers.LEVEL_1, formatRow, ok, formatConditionType(condition), age(condition.LastTransitionTime.Inner.Time), reason)
@@ -283,7 +265,7 @@ func formatStatus(status corev1.ConditionStatus) string {
 // Return either image name with tag or together with its resolved digest
 func getImageDesc(desc *revisionDesc) string {
 	image := color.CyanString(desc.image)
-	if printAll && desc.imageDigest != "" {
+	if printDetails && desc.imageDigest != "" {
 		digest := color.HiBlackString("(" + shortenDigest(desc.imageDigest) + ")")
 		return fmt.Sprintf("%s %s", image, digest)
 	}
@@ -302,14 +284,14 @@ func shortenDigest(digest string) string {
 	return digest
 }
 
-// Write a map either compact in a single line (possibly truncated) or, if printAll is set,
+// Write a map either compact in a single line (possibly truncated) or, if printDetails is set,
 // over multiple line, one line per key-value pair
 func writeMapDesc(dw printers.PrefixWriter, indent int, m map[string]string, label string, labelPrefix string) {
 	if len(m) == 0 {
 		return
 	}
 
-	if printAll {
+	if printDetails {
 		l := labelPrefix + label
 		for key, value := range m {
 			dw.WriteColsLn(indent, l, key+"="+value)
@@ -321,15 +303,15 @@ func writeMapDesc(dw printers.PrefixWriter, indent int, m map[string]string, lab
 	dw.WriteColsLn(indent, label, joinAndTruncate(m))
 }
 
-// Writer a slice compact (printAll == false) in one line, or over multiple line
-// with key-value line-by-line (printAll == true)
+// Writer a slice compact (printDetails == false) in one line, or over multiple line
+// with key-value line-by-line (printDetails == true)
 func writeSliceDesc(dw printers.PrefixWriter, indent int, s []string, label string, labelPrefix string) {
 
 	if len(s) == 0 {
 		return
 	}
 
-	if printAll {
+	if printDetails {
 		l := labelPrefix + label
 		for _, value := range s {
 			dw.WriteColsLn(indent, l, value)

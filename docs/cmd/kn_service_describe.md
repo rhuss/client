@@ -13,10 +13,9 @@ kn service describe NAME [flags]
 ### Options
 
 ```
-  -a, --all                don't truncate long information
-  -c, --color              use colorful output
+  -c, --color              Create colorful output.
+  -d, --details            Show all details.
   -h, --help               help for describe
-      --hipster            🤓
   -n, --namespace string   List the requested object(s) in given namespace.
 ```
 
