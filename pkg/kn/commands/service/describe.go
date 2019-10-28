@@ -202,10 +202,10 @@ func describe(w io.Writer, service *v1alpha1.Service, revisions []*revisionDesc,
 func writeService(dw printers.PrefixWriter, service *v1alpha1.Service) {
 	dw.WriteColsLn(printers.Level0, l("Name"), service.Name)
 	dw.WriteColsLn(printers.Level0, l("Namespace"), service.Namespace)
-	dw.WriteColsLn(printers.Level0, l("URL"), extractURL(service))
+	dw.WriteColsLn(printers.Level0, l("Route URL"), extractURL(service))
 	if service.Status.Address != nil {
 		url := service.Status.Address.GetURL()
-		dw.WriteColsLn(printers.Level0, l("Address"), url.String())
+		dw.WriteColsLn(printers.Level0, l("Cluster URL"), url.String())
 	}
 	writeMapDesc(dw, printers.Level0, service.Labels, l("Labels"), "")
 	writeMapDesc(dw, printers.Level0, service.Annotations, l("Annotations"), "")
