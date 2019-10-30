@@ -44,7 +44,7 @@ $ vi openshift-knative-client-release-v0.9.0.yaml
 # Jump to top-level repo directory
 $ cd ../../../../
 
-# Call job generator from Docker. You need a local Docker daemon installed
+# Call Prow job generator via Docker. You need a local Docker daemon installed
 $ docker run -it -v $(pwd)/ci-operator:/ci-operator:z  \
      registry.svc.ci.openshift.org/ci/ci-operator-prowgen:latest \
      --from-dir /ci-operator/config --to-dir /ci-operator/jobs
