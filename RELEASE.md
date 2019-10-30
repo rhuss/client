@@ -1,6 +1,6 @@
-# Crafting a new release
+## Crafting a new release
 
-* Merge in upstream release to openshift repo:
+### Merge in upstream release to openshift repo:
 
 ```bash
 # Check that a remote reference to openshift and upstream exists
@@ -23,10 +23,10 @@ $ ./create-release-branch.sh v0.9.0 release-v0.9.0
 $ git push openshift release-v0.9.0
 ```
 
-* Create a CI config and re-create Prow jobs
-*
-  - Create a fork of https://github.com/openshift/release (if not already done)
-  - Create a new config YML for your release. Copy over `release-next.yaml` and adapt it by updating the image name from `knative-nightly` to a version specific name `knative-v0.9.0`
+### Create a CI config and re-create Prow jobs
+
+* Create a fork of https://github.com/openshift/release (if not already done)
+* Create a new config YML for your release. Copy over `release-next.yaml` and adapt it by updating the image name from `knative-nightly` to a version specific name `knative-v0.9.0`
 
 ```bash
 # Jump into the knative client config directory in the openshift/release
