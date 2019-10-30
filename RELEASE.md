@@ -4,9 +4,11 @@
 
 ```bash
 # Check that a remote reference to openshift and upstream exists
-$ git remote -v | grep openshift
+$ git remote -v | grep -e 'openshift\|upstream'
 openshift	git@github.com:openshift/knative-client.git (fetch)
 openshift	git@github.com:openshift/knative-client.git (push)
+upstream	https://github.com/knative/client.git (fetch)
+upstream	https://github.com/knative/client.git (push)
 
 # Create an openshift branch pointing to openshift client's master
 # (if not already done)
