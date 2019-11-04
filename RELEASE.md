@@ -19,22 +19,27 @@ $ cd openshift/release
 
 # Create new release branch. Parameters are the upstream release tag
 # and the name of the branch to create
+# Usage: ./create-release-branch.sh <upstream-tag> <downstream-release-branch>
+# <upstream-tag>: The tag referring the upstream release
+# <downstream-release-branch>: Name of the release branch to create
 $ ./create-release-branch.sh v0.9.0 release-v0.9.0
 
-# Push release back to openshift branch
+# Push release branch to openshift/knative-client repo
 $ git push openshift release-v0.9.0
 ```
 
-### Create a CI config and re-create Prow jobs
+### Create a ci-operator configuration and Prow job configurations
 
 * Create a fork of https://github.com/openshift/release (if not already done)
 * Create a new config YML for your release. Copy over `release-next.yaml` and adapt it by updating the image name from `knative-nightly` to a version specific name `knative-v0.9.0`
-
+* Once the CI passes for the the release branch and is ready to go for QA, push the tag for the release for in the format `openshift-`<version>, e.g. `openshift-v0.9.0`
+*
 ```bash
 # Jump into the knative client config directory in the openshift/release
 $ cd ci-operator/config/openshift/knative-client
 
-# Copy over the nightly builds config to a release specific config
+# Copy over the nightly builds config to a release specific config with
+# the name of the yaml file ends with the new release branch name (e.g. release-v0.9.0)
 $ cp openshift-knative-client-release-next.yaml openshift-knative-client-release-v0.9.0.yaml
 
 # Adapt the configuration for a new image name
@@ -63,8 +68,12 @@ Untracked files:
 
 # Add & Commit all and push to your repo
 $ git add ....
-$ git commit -a -m "New CI config for knative-client v0.9.0"
+$ git commit -a -m "knative-client release v0.9.0 setup"
 $ git push
 
 # Create pull request on https://github.com/openshift/release with your changes
+
+# When the PR is merged and the CI is passes so that we are ready for QA, create tag & push
+$ git tag openshift-v0.9.0
+$ git push --tags
 ```
