@@ -54,10 +54,23 @@ $ docker run -it -v $(pwd)/ci-operator:/ci-operator:z  \
      registry.svc.ci.openshift.org/ci/ci-operator-prowgen:latest \
      --from-dir /ci-operator/config --to-dir /ci-operator/jobs
 
+# Add the image mirroring settings
+$ vi core-services/image-mirroring/knative/mapping_knative_v0_9_quay
+
+# Add a line for the kn image like
+# registry.svc.ci.openshift.org/openshift/knative-v0.9.0:knative-client quay.io/openshift-knative/knative-client:v0.9.0
+
 # Verify the changes
 $ git status
 On branch master
-Your branch is up to date with 'origin/master'.
+Your branch is ahead of 'origin/master' by 180 commits.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git checkout -- <file>..." to discard changes in working directory)
+
+	modified:   core-services/image-mirroring/knative/mapping_knative_v0_9_quay
 
 Untracked files:
   (use "git add <file>..." to include in what will be committed)
