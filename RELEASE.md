@@ -58,7 +58,7 @@ $ docker run -it -v $(pwd)/ci-operator:/ci-operator:z  \
 $ vi core-services/image-mirroring/knative/mapping_knative_v0_9_quay
 
 # Add a line for the kn image like
-# registry.svc.ci.openshift.org/openshift/knative-v0.9.0:knative-client quay.io/openshift-knative/knative-client:v0.9.0
+# registry.svc.ci.openshift.org/openshift/knative-v0.9.0:kn quay.io/openshift-knative/kn:v0.9.0
 
 # Verify the changes
 $ git status
