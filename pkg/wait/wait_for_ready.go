@@ -36,9 +36,16 @@ type waitForReadyConfig struct {
 	kind                string
 }
 
+// Describing a wait which waits for events and returns true when a done condition is fullfilled
+type waitForEvent struct {
+	watchMaker WatchMaker
+	eventDone EventDone
+	kind string
+}
+
 // Interface used for waiting of a resource of a given name to reach a definitive
 // state in its "Ready" condition.
-type WaitForReady interface {
+type Wait interface {
 
 	// Wait on resource the resource with this name until a given timeout
 	// and write event messages for unknown event to the status writer.
@@ -52,15 +59,26 @@ type WatchMaker func(name string, timeout time.Duration) (watch.Interface, error
 // Extract conditions from a runtime object
 type ConditionsExtractor func(obj runtime.Object) (apis.Conditions, error)
 
+// Function which checks whether the wait is done with an event
+type EventDone func(ev *watch.Event) bool
+
 // Callback for event messages
 type MessageCallback func(durationSinceState time.Duration, message string)
 
 // Constructor with resource type specific configuration
-func NewWaitForReady(kind string, watchMaker WatchMaker, extractor ConditionsExtractor) WaitForReady {
+func NewWaitForReady(kind string, watchMaker WatchMaker, extractor ConditionsExtractor) Wait {
 	return &waitForReadyConfig{
 		kind:                kind,
 		watchMaker:          watchMaker,
 		conditionsExtractor: extractor,
+	}
+}
+
+func NewWaitForEvent(kind string, watchMaker WatchMaker, eventDone EventDone) Wait {
+	return &waitForEvent{
+		kind:       kind,
+		watchMaker: watchMaker,
+		eventDone:  eventDone,
 	}
 }
 
@@ -108,6 +126,13 @@ func (w *waitForReadyConfig) Wait(name string, timeout time.Duration, msgCallbac
 		return nil, time.Since(start)
 	}
 }
+
+// Wait for events until the w.eventDone() function returns true or a timeout as been reached.
+// Use the message callback to print our progress information when events arrive.
+func (w waitForEvent) Wait(name string, timeout time.Duration, msgCallback MessageCallback) (error, time.Duration) {
+	panic("implement me")
+}
+
 
 func (w *waitForReadyConfig) waitForReadyCondition(start time.Time, name string, timeout time.Duration, errorWindow time.Duration, msgCallback MessageCallback) (retry bool, timeoutReached bool, err error) {
 

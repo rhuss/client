@@ -17,11 +17,14 @@ package service
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"knative.dev/client/pkg/kn/commands"
 )
+
+var DeleteTimeout = 60 * time.Second
 
 // NewServiceDeleteCommand represent 'service delete' command
 func NewServiceDeleteCommand(p *commands.KnParams) *cobra.Command {
@@ -50,7 +53,7 @@ func NewServiceDeleteCommand(p *commands.KnParams) *cobra.Command {
 			}
 
 			for _, name := range args {
-				err = client.DeleteService(name)
+				err = client.DeleteService(name, &DeleteTimeout)
 				if err != nil {
 					fmt.Fprintf(cmd.OutOrStdout(), "%s.\n", err)
 				} else {

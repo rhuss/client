@@ -68,8 +68,8 @@ type KnServingClient interface {
 	// place.
 	UpdateServiceWithRetry(name string, updateFunc serviceUpdateFunc, nrRetries int) error
 
-	// Delete a service by name
-	DeleteService(name string) error
+	// Delete a service by name and wait for the service to be deleted. If timeout == nil, then return immediately.
+	DeleteService(name string, timeout *time.Duration) error
 
 	// Wait for a service to become ready, but not longer than provided timeout.
 	// Return error and how long has been waited
@@ -172,7 +172,7 @@ func (cl *knServingClient) GetService(name string) (*servingv1.Service, error) {
 	return service, nil
 }
 
-func (cl *knServingClient) WatchService(name string, timeout time.Duration) (watch.Interface, error) {
+func (cl *knServingClient) watchService(name string, timeout time.Duration) (watch.Interface, error) {
 	return wait.NewWatcher(cl.client.Services(cl.namespace).Watch,
 		cl.client.RESTClient(), cl.namespace, "services", name, timeout)
 }
@@ -253,7 +253,7 @@ func updateServiceWithRetry(cl KnServingClient, name string, updateFunc serviceU
 }
 
 // Delete a service by name
-func (cl *knServingClient) DeleteService(serviceName string) error {
+func (cl *knServingClient) DeleteService(serviceName string, timeout *time.Duration) error {
 	err := cl.client.Services(cl.namespace).Delete(
 		serviceName,
 		&v1.DeleteOptions{},
@@ -261,13 +261,18 @@ func (cl *knServingClient) DeleteService(serviceName string) error {
 	if err != nil {
 		return clienterrors.GetError(err)
 	}
-
-	return nil
+    if timeout == nil {
+		return nil
+	}
+	waitForEvent := wait.NewWaitForEvent("service", cl.watchService, func(evt *watch.Event) bool { return evt.Type == watch.Deleted })
+	// Simple wait with no output.
+	err, _ = waitForEvent.Wait(serviceName, *timeout, wait.NoopMessageCallback())
+	return err
 }
 
 // Wait for a service to become ready, but not longer than provided timeout
 func (cl *knServingClient) WaitForService(name string, timeout time.Duration, msgCallback wait.MessageCallback) (error, time.Duration) {
-	waitForReady := wait.NewWaitForReady("service", cl.WatchService, serviceConditionExtractor)
+	waitForReady := wait.NewWaitForReady("service", cl.watchService, serviceConditionExtractor)
 	return waitForReady.Wait(name, timeout, msgCallback)
 }
 
