@@ -31,7 +31,7 @@ pkg_tar() {
       #aarch64|ppc64le|s390x) dir=linux-${1};;
   esac
   cp LICENSE ${OUTDIR}/${dir}
-  tar --owner 0 --group 0 -C ${OUTDIR}/${dir} . -zcf kn-${dir}-amd64.tar.gz
+  tar -zcf kn-${dir}-amd64.tar.gz -C ${OUTDIR}/${dir} .
 }
 
 pkg_zip_for_windows() {
