@@ -19,12 +19,27 @@
 release=$1
 target=$2
 
+# Custom files
+custom_files=$(cat <<EOT | tr '\n' ' '
+openshift
+OWNERS_ALIASES
+OWNERS
+Makefile
+Dockerfile.rhel
+Dockerfile.cliartifacts.rhel
+package_cliartifacts.sh
+container.yaml
+content_sets.yaml
+EOT
+)
+
+
 # Fetch the latest tags and checkout a new branch from the wanted tag.
 git fetch upstream --tags
 git checkout -b "$target" "$release"
 
 # Update openshift's master and take all needed files from there.
 git fetch openshift master
-git checkout openshift/master openshift OWNERS_ALIASES OWNERS Makefile Dockerfile.rhel Dockerfile.cliartifacts.rhel package_cliartifacts.sh container.yaml content_sets.yaml
-git add openshift OWNERS_ALIASES OWNERS Makefile
+git checkout openshift/master $custom_files
+git add $custom_files
 git commit -m "Add openshift specific files."
